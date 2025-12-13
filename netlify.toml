@@ -1,0 +1,14 @@
+[build]
+  publish = "."
+  command = "echo 'No build needed - static site'"
+
+[[redirects]]
+  from = "/drip-extractor/*"
+  to = "/drip-extractor/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
