@@ -21,13 +21,25 @@ A collection of AI-powered tools for image generation and analysis.
 
 ## Deployment
 
-This site is configured for Netlify deployment. Simply connect your GitHub repository to Netlify and it will automatically deploy.
+This site is configured for Netlify deployment. It's a **static site** - no serverless functions needed! All API calls are made directly from the browser.
 
 ### Netlify Configuration
 
-- **Build command**: None (static site)
+- **Build command**: None needed (static site - already built)
 - **Publish directory**: `.` (root)
-- **Redirects**: Configured in `netlify.toml` and `_redirects`
+- **Redirects**: Configured in `netlify.toml` and `_redirects` for SPA routing
+
+### Quick Deploy Steps
+
+1. Go to [Netlify](https://app.netlify.com)
+2. Click "Add new site" → "Import an existing project"
+3. Connect to GitHub and select the `banana-builder` repository
+4. Netlify will auto-detect settings:
+   - Build command: (leave empty or use: `echo 'Static site - no build needed'`)
+   - Publish directory: `.` (root)
+5. Click "Deploy site"
+
+The site will be live immediately! All tools work client-side.
 
 ## Local Development
 
