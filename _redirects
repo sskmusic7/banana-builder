@@ -1,5 +1,8 @@
-/drip-extractor/*    /drip-extractor/index.html    200
-/*                  /index.html                    200
+/drip-extractor/assets/*    /drip-extractor/assets/:splat    200
+/drip-extractor/*           /drip-extractor/index.html       200
+/*                          /index.html                      200
+
+
 
 
 

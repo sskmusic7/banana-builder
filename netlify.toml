@@ -2,6 +2,13 @@
   publish = "."
   command = "echo 'No build needed - static site'"
 
+# Don't redirect asset files - let them load normally
+[[redirects]]
+  from = "/drip-extractor/assets/*"
+  to = "/drip-extractor/assets/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/drip-extractor/*"
   to = "/drip-extractor/index.html"
@@ -11,6 +18,8 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+
 
 
 
