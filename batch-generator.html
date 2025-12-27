@@ -521,13 +521,17 @@
             let prompts = [];
             
             // Method 1: Check for numbered prompts (1., 2., 3., etc.)
-            const numberedPattern = /^\d+\.\s+/gm;
-            if (numberedPattern.test(text)) {
-                // Split by numbered items
-                const parts = text.split(/^\d+\.\s+/gm);
-                prompts = parts
-                    .map(p => p.trim())
-                    .filter(p => p.length > 0 && !p.match(/^\d+\.\s*$/)); // Remove empty or just numbers
+            // Use a regex to match numbered sections: number + title + content
+            const numberedMatches = text.match(/\d+\.\s+[^\n]+(?:\n(?!\d+\.\s)[^\n]*)*/g);
+            if (numberedMatches && numberedMatches.length > 0) {
+                // Extract content from each numbered section
+                prompts = numberedMatches.map(match => {
+                    // Remove the number prefix (e.g., "1. Title\n")
+                    const content = match.replace(/^\d+\.\s+[^\n]+\n?/, '');
+                    // Combine title and content, replace newlines with spaces
+                    const fullPrompt = match.replace(/^\d+\.\s+/, '').replace(/\n+/g, ' ').trim();
+                    return fullPrompt;
+                }).filter(p => p.length > 0);
             } else {
                 // Method 2: Split by double newlines (paragraph breaks)
                 if (text.includes('\n\n')) {
@@ -543,9 +547,6 @@
                         .filter(p => p.length > 0);
                 }
             }
-
-            // Clean up prompts: remove number prefixes if they slipped through
-            prompts = prompts.map(p => p.replace(/^\d+\.\s*/, '').trim());
 
             if (prompts.length === 0) {
                 alert('No valid prompts found');
