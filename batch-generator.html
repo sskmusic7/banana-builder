@@ -521,15 +521,17 @@
             let prompts = [];
             
             // Method 1: Check for numbered prompts (1., 2., 3., etc.)
-            // Use a regex to match numbered sections: number + title + content
-            const numberedMatches = text.match(/\d+\.\s+[^\n]+(?:\n(?!\d+\.\s)[^\n]*)*/g);
+            // Use a regex to match numbered sections: number + title + content (until next number or end)
+            const numberedMatches = text.match(/\d+\.\s+[^\n]*(?:\n(?!\d+\.\s)[^\n]*)*/g);
             if (numberedMatches && numberedMatches.length > 0) {
                 // Extract content from each numbered section
                 prompts = numberedMatches.map(match => {
-                    // Remove the number prefix (e.g., "1. Title\n")
-                    const content = match.replace(/^\d+\.\s+[^\n]+\n?/, '');
-                    // Combine title and content, replace newlines with spaces
-                    const fullPrompt = match.replace(/^\d+\.\s+/, '').replace(/\n+/g, ' ').trim();
+                    // Remove the number prefix, keep title and content, replace newlines with spaces
+                    const fullPrompt = match
+                        .replace(/^\d+\.\s+/, '') // Remove "1. " prefix
+                        .replace(/\n+/g, ' ')     // Replace newlines with spaces
+                        .replace(/\s+/g, ' ')      // Normalize multiple spaces
+                        .trim();
                     return fullPrompt;
                 }).filter(p => p.length > 0);
             } else {
