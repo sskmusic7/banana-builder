@@ -416,8 +416,8 @@
             <div class="section-title">📝 Prompts</div>
             
             <div class="form-group">
-                <label>Enter prompts (one per line or separated by commas)</label>
-                <textarea id="promptsInput" rows="10" placeholder="Paste your prompts here, one per line:&#10;&#10;Create an image of a sunset over mountains&#10;A cat sitting on a windowsill&#10;Abstract geometric patterns"></textarea>
+                <label>Enter prompts (numbered items, double newlines, or one per line)</label>
+                <textarea id="promptsInput" rows="10" placeholder="Paste your prompts here. Supports:&#10;&#10;1. Numbered prompts (1., 2., 3., etc.)&#10;2. Double newlines between prompts&#10;3. One prompt per line&#10;&#10;Commas within prompts are preserved."></textarea>
             </div>
 
             <div id="promptList" class="prompt-list" style="display: none;"></div>
@@ -517,11 +517,35 @@
                 return;
             }
 
-            // Parse prompts - split by newlines or commas
-            const prompts = text
-                .split(/[\n,]+/)
-                .map(p => p.trim())
-                .filter(p => p.length > 0);
+            // Smart parsing: Handle numbered prompts, double newlines, or single newlines
+            let prompts = [];
+            
+            // Method 1: Check for numbered prompts (1., 2., 3., etc.)
+            const numberedPattern = /^\d+\.\s+/gm;
+            if (numberedPattern.test(text)) {
+                // Split by numbered items
+                const parts = text.split(/^\d+\.\s+/gm);
+                prompts = parts
+                    .map(p => p.trim())
+                    .filter(p => p.length > 0 && !p.match(/^\d+\.\s*$/)); // Remove empty or just numbers
+            } else {
+                // Method 2: Split by double newlines (paragraph breaks)
+                if (text.includes('\n\n')) {
+                    prompts = text
+                        .split(/\n\n+/)
+                        .map(p => p.trim().replace(/\n/g, ' ')) // Replace single newlines with spaces
+                        .filter(p => p.length > 0);
+                } else {
+                    // Method 3: Split by single newlines (one per line)
+                    prompts = text
+                        .split(/\n+/)
+                        .map(p => p.trim())
+                        .filter(p => p.length > 0);
+                }
+            }
+
+            // Clean up prompts: remove number prefixes if they slipped through
+            prompts = prompts.map(p => p.replace(/^\d+\.\s*/, '').trim());
 
             if (prompts.length === 0) {
                 alert('No valid prompts found');
@@ -809,4 +833,5 @@
     </script>
 </body>
 </html>
+
 
