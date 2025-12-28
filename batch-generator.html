@@ -499,7 +499,14 @@
                     <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
                     <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
                     <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="seedream-4">Seedream 4 (Freepik)</option>
                 </select>
+            </div>
+
+            <div class="form-group" id="seedreamApiKeyGroup" style="display: none;">
+                <label>Freepik API Key *</label>
+                <input type="password" id="seedreamApiKey" placeholder="Enter your Freepik API key" />
+                <p style="font-size: 12px; color: #666; margin-top: 5px;">Get your API key from <a href="https://developers.freepik.com/" target="_blank">Freepik Developers</a></p>
             </div>
 
             <div class="form-group dimension-group">
@@ -599,6 +606,8 @@
         const elements = {
             apiKey: document.getElementById('apiKey'),
             modelSelect: document.getElementById('modelSelect'),
+            seedreamApiKey: document.getElementById('seedreamApiKey'),
+            seedreamApiKeyGroup: document.getElementById('seedreamApiKeyGroup'),
             width: document.getElementById('width'),
             height: document.getElementById('height'),
             promptsInput: document.getElementById('promptsInput'),
@@ -619,16 +628,40 @@
             imagePreviews: document.getElementById('imagePreviews')
         };
 
-        // Load saved API key
+        // Load saved API keys
         const savedKey = localStorage.getItem('batch-generator-api-key');
         if (savedKey) {
             elements.apiKey.value = savedKey;
         }
+        const savedSeedreamKey = localStorage.getItem('batch-generator-seedream-api-key');
+        if (savedSeedreamKey) {
+            elements.seedreamApiKey.value = savedSeedreamKey;
+        }
 
-        // Save API key on change
+        // Save API keys on change
         elements.apiKey.addEventListener('input', () => {
             localStorage.setItem('batch-generator-api-key', elements.apiKey.value);
         });
+        elements.seedreamApiKey.addEventListener('input', () => {
+            localStorage.setItem('batch-generator-seedream-api-key', elements.seedreamApiKey.value);
+        });
+
+        // Show/hide Seedream API key field based on model selection
+        elements.modelSelect.addEventListener('change', () => {
+            if (elements.modelSelect.value === 'seedream-4') {
+                elements.seedreamApiKeyGroup.style.display = 'block';
+                elements.apiKey.closest('.form-group').style.display = 'none';
+            } else {
+                elements.seedreamApiKeyGroup.style.display = 'none';
+                elements.apiKey.closest('.form-group').style.display = 'block';
+            }
+        });
+
+        // Initialize on load
+        if (elements.modelSelect.value === 'seedream-4') {
+            elements.seedreamApiKeyGroup.style.display = 'block';
+            elements.apiKey.closest('.form-group').style.display = 'none';
+        }
 
         // Image upload handlers
         elements.fileUploadArea.addEventListener('click', () => {
@@ -870,9 +903,18 @@
         }
 
         async function startGeneration() {
-            if (!elements.apiKey.value.trim()) {
-                alert('Please enter your Gemini API key');
-                return;
+            const selectedModel = elements.modelSelect.value;
+            
+            if (selectedModel === 'seedream-4') {
+                if (!elements.seedreamApiKey.value.trim()) {
+                    alert('Please enter your Freepik API key');
+                    return;
+                }
+            } else {
+                if (!elements.apiKey.value.trim()) {
+                    alert('Please enter your Gemini API key');
+                    return;
+                }
             }
 
             if (state.prompts.length === 0) {
@@ -899,8 +941,12 @@
                 renderPromptList();
 
                 try {
+                    const apiKey = elements.modelSelect.value === 'seedream-4' 
+                        ? elements.seedreamApiKey.value 
+                        : elements.apiKey.value;
+                    
                     const imageUrl = await generateImage(
-                        elements.apiKey.value,
+                        apiKey,
                         prompt.text,
                         parseInt(elements.width.value),
                         parseInt(elements.height.value),
@@ -945,6 +991,13 @@
 
         async function generateImage(apiKey, prompt, width, height, uploadedImages = []) {
             const model = elements.modelSelect.value;
+            
+            // Handle Seedream 4 API (async task-based)
+            if (model === 'seedream-4') {
+                return await generateSeedreamImage(apiKey, prompt, width, height, uploadedImages);
+            }
+            
+            // Handle Gemini API (synchronous)
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
             // Build the prompt text
@@ -1016,6 +1069,102 @@
             const mimeType = part.inlineData.mimeType || 'image/png';
             const blob = base64ToBlob(base64Data, mimeType);
             return URL.createObjectURL(blob);
+        }
+
+        async function generateSeedreamImage(apiKey, prompt, width, height, uploadedImages = []) {
+            // Step 1: Create generation task
+            const createTaskUrl = 'https://api.freepik.com/v1/ai/text-to-image/seedream-v4';
+            
+            // Build prompt text
+            let promptText = prompt;
+            if (uploadedImages && uploadedImages.length > 0) {
+                promptText += ` [Reference images provided for style/character guidance]`;
+            }
+            
+            const requestBody = {
+                prompt: promptText,
+                width: width,
+                height: height,
+                // Note: Seedream 4 may not support image inputs directly in text-to-image endpoint
+                // You may need to use image-to-image endpoint for reference images
+            };
+
+            // Create task
+            const createResponse = await fetch(createTaskUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'x-freepik-api-key': apiKey
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!createResponse.ok) {
+                const errorData = await createResponse.json().catch(() => ({}));
+                throw new Error(errorData.message || errorData.error || `HTTP ${createResponse.status}: ${createResponse.statusText}`);
+            }
+
+            const taskData = await createResponse.json();
+            const taskId = taskData.data?.id || taskData.id || taskData.task_id;
+
+            if (!taskId) {
+                throw new Error('No task ID returned from Seedream API');
+            }
+
+            // Step 2: Poll for task completion
+            const statusUrl = `https://api.freepik.com/v1/ai/text-to-image/seedream-v4/${taskId}`;
+            const maxAttempts = 60; // 5 minutes max (5 second intervals)
+            let attempts = 0;
+
+            while (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+
+                const statusResponse = await fetch(statusUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'x-freepik-api-key': apiKey
+                    }
+                });
+
+                if (!statusResponse.ok) {
+                    const errorData = await statusResponse.json().catch(() => ({}));
+                    throw new Error(errorData.message || errorData.error || `HTTP ${statusResponse.status}: ${statusResponse.statusText}`);
+                }
+
+                const statusData = await statusResponse.json();
+                const status = statusData.data?.status || statusData.status;
+
+                if (status === 'completed' || status === 'success') {
+                    // Step 3: Get the image URL
+                    const imageUrl = statusData.data?.image_url || statusData.data?.url || statusData.image_url || statusData.url;
+                    
+                    if (!imageUrl) {
+                        throw new Error('No image URL in completed task response');
+                    }
+
+                    // Fetch the image and convert to blob URL
+                    const imageResponse = await fetch(imageUrl);
+                    if (!imageResponse.ok) {
+                        throw new Error(`Failed to fetch generated image: ${imageResponse.statusText}`);
+                    }
+                    
+                    const blob = await imageResponse.blob();
+                    return URL.createObjectURL(blob);
+                } else if (status === 'failed' || status === 'error') {
+                    const errorMsg = statusData.data?.error || statusData.error || 'Task failed';
+                    throw new Error(`Seedream generation failed: ${errorMsg}`);
+                } else if (status === 'processing' || status === 'pending' || status === 'in_progress') {
+                    // Continue polling
+                    attempts++;
+                    continue;
+                } else {
+                    throw new Error(`Unknown task status: ${status}`);
+                }
+            }
+
+            throw new Error('Seedream generation timed out after 5 minutes');
         }
 
         function base64ToBlob(base64, mimeType) {
