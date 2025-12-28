@@ -897,9 +897,20 @@
             const model = elements.modelSelect.value;
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
+            // Build the prompt text
+            let promptText = prompt;
+            
+            // If reference images are provided, add instructions to use them for likeness only
+            if (uploadedImages && uploadedImages.length > 0) {
+                const imageInstruction = `\n\nIMPORTANT: The uploaded reference image(s) are provided for subject likeness, appearance, facial features, and styling reference ONLY. DO NOT copy the pose, position, body arrangement, camera angle, or action from the reference images. Instead, follow the pose, position, action, and composition described in the prompt text above. Use the reference images solely to maintain consistent subject appearance and features across different poses and scenarios.`;
+                promptText = prompt + imageInstruction;
+            }
+            
+            promptText += `\n\nOutput dimensions: ${width}x${height}`;
+
             const contents = [{
                 role: "user",
-                parts: [{ text: `${prompt}\n\nOutput dimensions: ${width}x${height}` }]
+                parts: [{ text: promptText }]
             }];
 
             // Add uploaded images to the request
