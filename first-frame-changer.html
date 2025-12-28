@@ -702,42 +702,48 @@
             elements.outputSection.classList.remove('active');
 
             try {
-                // Build prompt based on what to keep
+                // Build prompt - treat first frame as tracing template
+                let prompt = `CRITICAL INSTRUCTIONS - TRACING PAPER METHOD:
+                
+The first image is your TRACING TEMPLATE. The second image is your CHARACTER/STYLE REFERENCE.
+
+You must treat this like tracing paper:
+1. Use the FIRST image as an EXACT template for:
+   - Body pose and positioning (every limb, joint, angle must match exactly)
+   - Camera angle and perspective (identical viewpoint)
+   - Composition and framing (same crop, same positioning in frame)
+   - Body proportions and silhouette shape
+   - Head position and angle
+   - Hand and foot positions
+   - Weight distribution and stance
+   - Any props or objects being held/interacted with
+
+2. From the SECOND image, extract ONLY:
+   - Character appearance (facial features, hair, skin tone)
+   - Clothing style and outfit
+   - Visual aesthetic and style
+   - Color palette and mood
+
+3. The result should look like you traced the exact pose from the first image but drew a completely different character from the second image in that same pose.
+
+CRITICAL: The pose, positioning, camera angle, and composition must be IDENTICAL to the first frame. Only the character appearance, clothing, and style should come from the second image. This is for video generation frame consistency - the pose must match exactly like tracing paper.
+
+Output dimensions: ${parseInt(elements.width.value)}x${parseInt(elements.height.value)}`;
+
+                // Add optional keep/change instructions if user wants to modify behavior
                 const keepParts = [];
-                const changeParts = [];
+                if (elements.keepPose.checked) keepParts.push('pose');
+                if (elements.keepCharacter.checked) keepParts.push('character');
+                if (elements.keepOutfit.checked) keepParts.push('outfit');
+                if (elements.keepSetting.checked) keepParts.push('setting');
                 
-                if (elements.keepPose.checked) keepParts.push('pose and body position');
-                if (elements.keepCharacter.checked) keepParts.push('character appearance and facial features');
-                if (elements.keepOutfit.checked) keepParts.push('outfit and clothing');
-                if (elements.keepSetting.checked) keepParts.push('setting and environment');
-                
-                if (!elements.keepPose.checked) changeParts.push('pose and body position');
-                if (!elements.keepCharacter.checked) changeParts.push('character appearance and facial features');
-                if (!elements.keepOutfit.checked) changeParts.push('outfit and clothing');
-                if (!elements.keepSetting.checked) changeParts.push('setting and environment');
-
-                let prompt = `Transform the first frame image to match the style, character, and aesthetic of the second reference image. `;
-                
-                if (keepParts.length > 0) {
-                    prompt += `CRITICAL: PRESERVE from the first frame: ${keepParts.join(', ')}. `;
-                }
-                
-                if (changeParts.length > 0) {
-                    prompt += `TRANSFORM from the style reference image: ${changeParts.join(', ')}. `;
-                }
-
-                prompt += `Apply the character appearance, style, aesthetic, mood, lighting, and visual characteristics from the reference image to create a new first frame. `;
-                prompt += `The output should be suitable for use as the first frame in motion video generation. `;
-                
-                if (elements.keepPose.checked) {
-                    prompt += `Maintain the exact pose, body position, camera angle, and composition from the first frame, but transform the character, outfit, and setting to match the style reference. `;
-                } else {
-                    prompt += `Transform everything including pose to match the style reference image. `;
+                if (keepParts.length < 4) {
+                    prompt += `\n\nNote: User wants to preserve: ${keepParts.length > 0 ? keepParts.join(', ') : 'nothing'}. Adjust accordingly, but ALWAYS maintain exact pose positioning if pose is checked.`;
                 }
 
                 const additionalPrompt = elements.promptGuidance.value.trim();
                 if (additionalPrompt) {
-                    prompt += ` Additional instructions: ${additionalPrompt}`;
+                    prompt += `\n\nAdditional user instructions: ${additionalPrompt}`;
                 }
 
                 const imageUrl = await generateImage(
