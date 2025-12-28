@@ -195,6 +195,29 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 10px;
+        }
+
+        .prompt-item-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .delete-prompt-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s ease;
+        }
+
+        .delete-prompt-btn:hover {
+            background: #c82333;
         }
 
         .prompt-item.processing {
@@ -717,20 +740,29 @@
                         .replace(/\s+/g, ' ')      // Normalize multiple spaces
                         .trim();
                     return fullPrompt;
-                }).filter(p => p.length > 0);
+                }).filter(p => {
+                    // Filter out empty prompts and lines starting with "---"
+                    return p.length > 0 && !p.match(/^---/);
+                });
             } else {
                 // Method 2: Split by double newlines (paragraph breaks)
                 if (text.includes('\n\n')) {
                     prompts = text
                         .split(/\n\n+/)
                         .map(p => p.trim().replace(/\n/g, ' ')) // Replace single newlines with spaces
-                        .filter(p => p.length > 0);
+                        .filter(p => {
+                            // Filter out empty prompts and lines starting with "---"
+                            return p.length > 0 && !p.match(/^---/);
+                        });
                 } else {
                     // Method 3: Split by single newlines (one per line)
                     prompts = text
                         .split(/\n+/)
                         .map(p => p.trim())
-                        .filter(p => p.length > 0);
+                        .filter(p => {
+                            // Filter out empty prompts and lines starting with "---"
+                            return p.length > 0 && !p.match(/^---/);
+                        });
                 }
             }
 
@@ -785,16 +817,20 @@
         });
 
         function renderPromptList() {
-            elements.promptList.innerHTML = state.prompts.map(prompt => {
+            elements.promptList.innerHTML = state.prompts.map((prompt, index) => {
                 const statusClass = `status-${prompt.status}`;
+                const canDelete = prompt.status === 'pending' && !state.isProcessing;
                 return `
                     <div class="prompt-item ${prompt.status}">
                         <div class="prompt-text">${escapeHtml(prompt.text)}</div>
-                        <div class="prompt-status ${statusClass}">
-                            ${prompt.status === 'pending' ? '⏳ Pending' : 
-                              prompt.status === 'processing' ? '<span class="loading"></span> Processing' :
-                              prompt.status === 'success' ? '✓ Success' :
-                              prompt.status === 'error' ? '✗ Error' : ''}
+                        <div class="prompt-item-actions">
+                            <div class="prompt-status ${statusClass}">
+                                ${prompt.status === 'pending' ? '⏳ Pending' : 
+                                  prompt.status === 'processing' ? '<span class="loading"></span> Processing' :
+                                  prompt.status === 'success' ? '✓ Success' :
+                                  prompt.status === 'error' ? '✗ Error' : ''}
+                            </div>
+                            ${canDelete ? `<button class="delete-prompt-btn" onclick="deletePrompt(${index})" title="Delete prompt">×</button>` : ''}
                         </div>
                     </div>
                 `;
@@ -805,6 +841,20 @@
                 updateProgress();
             }
         }
+
+        function deletePrompt(index) {
+            if (state.isProcessing) {
+                alert('Cannot delete prompts while generation is in progress');
+                return;
+            }
+            state.prompts.splice(index, 1);
+            // Re-index prompts
+            state.prompts = state.prompts.map((p, i) => ({ ...p, id: i }));
+            renderPromptList();
+        }
+
+        // Make deletePrompt available globally
+        window.deletePrompt = deletePrompt;
 
         function updateProgress() {
             const total = state.prompts.length;
