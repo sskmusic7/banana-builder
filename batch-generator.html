@@ -751,7 +751,7 @@
         window.removeImage = removeImage;
 
         elements.parseBtn.addEventListener('click', () => {
-            const text = elements.promptsInput.value.trim();
+            let text = elements.promptsInput.value.trim();
             if (!text) {
                 alert('Please enter some prompts');
                 return;
