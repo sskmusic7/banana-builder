@@ -760,6 +760,9 @@
             // Smart parsing: Handle numbered prompts, double newlines, or single newlines
             let prompts = [];
             
+            // First, remove "--- PROMPT X: filename ---" header lines
+            text = text.replace(/^---\s*PROMPT\s+\d+:\s*[^\n]+?\s*---\s*/gmi, '');
+            
             // Method 1: Check for numbered prompts (1., 2., 3., etc.)
             // Use a regex to match numbered sections: number + title + content (until next number or end)
             const numberedMatches = text.match(/\d+\.\s+[^\n]*(?:\n(?!\d+\.\s)[^\n]*)*/g);
@@ -774,8 +777,8 @@
                         .trim();
                     return fullPrompt;
                 }).filter(p => {
-                    // Filter out empty prompts and lines starting with "---"
-                    return p.length > 0 && !p.match(/^---/);
+                    // Filter out empty prompts and lines that are ONLY "---" separators
+                    return p.length > 0 && !p.match(/^---\s*$/);
                 });
             } else {
                 // Method 2: Split by double newlines (paragraph breaks)
@@ -784,8 +787,8 @@
                         .split(/\n\n+/)
                         .map(p => p.trim().replace(/\n/g, ' ')) // Replace single newlines with spaces
                         .filter(p => {
-                            // Filter out empty prompts and lines starting with "---"
-                            return p.length > 0 && !p.match(/^---/);
+                            // Filter out empty prompts and lines that are ONLY "---" separators
+                            return p.length > 0 && !p.match(/^---\s*$/);
                         });
                 } else {
                     // Method 3: Split by single newlines (one per line)
@@ -793,8 +796,8 @@
                         .split(/\n+/)
                         .map(p => p.trim())
                         .filter(p => {
-                            // Filter out empty prompts and lines starting with "---"
-                            return p.length > 0 && !p.match(/^---/);
+                            // Filter out empty prompts and lines that are ONLY "---" separators
+                            return p.length > 0 && !p.match(/^---\s*$/);
                         });
                 }
             }
