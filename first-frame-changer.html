@@ -413,10 +413,14 @@
         <div class="section">
             <div class="section-title">⚙️ Keep From First Frame</div>
             <div class="form-group">
-                <label>Select what to preserve from the first frame:</label>
+                <label>Select what to preserve from the first frame (everything else will be transformed from style reference):</label>
                 <div class="options-grid">
+                    <label class="option-checkbox" id="keepPoseLabel">
+                        <input type="checkbox" id="keepPose" checked />
+                        <span>🤸 Pose & Position</span>
+                    </label>
                     <label class="option-checkbox" id="keepCharacterLabel">
-                        <input type="checkbox" id="keepCharacter" checked />
+                        <input type="checkbox" id="keepCharacter" />
                         <span>👤 Character</span>
                     </label>
                     <label class="option-checkbox" id="keepOutfitLabel">
@@ -484,9 +488,11 @@
             styleFilename: document.getElementById('styleFilename'),
             stylePreview: document.getElementById('stylePreview'),
             styleImage: document.getElementById('styleImage'),
+            keepPose: document.getElementById('keepPose'),
             keepCharacter: document.getElementById('keepCharacter'),
             keepOutfit: document.getElementById('keepOutfit'),
             keepSetting: document.getElementById('keepSetting'),
+            keepPoseLabel: document.getElementById('keepPoseLabel'),
             keepCharacterLabel: document.getElementById('keepCharacterLabel'),
             keepOutfitLabel: document.getElementById('keepOutfitLabel'),
             keepSettingLabel: document.getElementById('keepSettingLabel'),
@@ -510,7 +516,7 @@
         });
 
         // Update checkbox labels
-        [elements.keepCharacter, elements.keepOutfit, elements.keepSetting].forEach(checkbox => {
+        [elements.keepPose, elements.keepCharacter, elements.keepOutfit, elements.keepSetting].forEach(checkbox => {
             checkbox.addEventListener('change', () => {
                 const label = checkbox.closest('label');
                 if (checkbox.checked) {
@@ -522,7 +528,7 @@
         });
 
         // Initialize checkbox states
-        elements.keepCharacterLabel.classList.add('checked');
+        elements.keepPoseLabel.classList.add('checked');
 
         // First frame upload handlers
         elements.firstFrameUploadArea.addEventListener('click', () => {
@@ -698,21 +704,36 @@
             try {
                 // Build prompt based on what to keep
                 const keepParts = [];
-                if (elements.keepCharacter.checked) keepParts.push('character');
-                if (elements.keepOutfit.checked) keepParts.push('outfit');
-                if (elements.keepSetting.checked) keepParts.push('setting');
+                const changeParts = [];
+                
+                if (elements.keepPose.checked) keepParts.push('pose and body position');
+                if (elements.keepCharacter.checked) keepParts.push('character appearance and facial features');
+                if (elements.keepOutfit.checked) keepParts.push('outfit and clothing');
+                if (elements.keepSetting.checked) keepParts.push('setting and environment');
+                
+                if (!elements.keepPose.checked) changeParts.push('pose and body position');
+                if (!elements.keepCharacter.checked) changeParts.push('character appearance and facial features');
+                if (!elements.keepOutfit.checked) changeParts.push('outfit and clothing');
+                if (!elements.keepSetting.checked) changeParts.push('setting and environment');
 
-                let prompt = `Transform the first frame image to match the style of the second reference image. `;
+                let prompt = `Transform the first frame image to match the style, character, and aesthetic of the second reference image. `;
                 
                 if (keepParts.length > 0) {
-                    prompt += `PRESERVE from the first frame: ${keepParts.join(', ')}. `;
-                } else {
-                    prompt += `Do not preserve anything from the first frame - completely transform it. `;
+                    prompt += `CRITICAL: PRESERVE from the first frame: ${keepParts.join(', ')}. `;
+                }
+                
+                if (changeParts.length > 0) {
+                    prompt += `TRANSFORM from the style reference image: ${changeParts.join(', ')}. `;
                 }
 
-                prompt += `Apply the style, aesthetic, mood, lighting, and visual characteristics from the reference image to create a new first frame. `;
+                prompt += `Apply the character appearance, style, aesthetic, mood, lighting, and visual characteristics from the reference image to create a new first frame. `;
                 prompt += `The output should be suitable for use as the first frame in motion video generation. `;
-                prompt += `Maintain the same composition and framing as the first frame, but transform everything else to match the reference style.`;
+                
+                if (elements.keepPose.checked) {
+                    prompt += `Maintain the exact pose, body position, camera angle, and composition from the first frame, but transform the character, outfit, and setting to match the style reference. `;
+                } else {
+                    prompt += `Transform everything including pose to match the style reference image. `;
+                }
 
                 const additionalPrompt = elements.promptGuidance.value.trim();
                 if (additionalPrompt) {
