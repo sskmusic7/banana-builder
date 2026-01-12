@@ -1508,30 +1508,71 @@
             renderHistory();
         }
 
-        // Save history to localStorage
+        // Save history to localStorage with error handling
         function saveHistory() {
-            localStorage.setItem('batch-generator-history', JSON.stringify(state.history));
+            try {
+                // Limit history to 50 items to prevent quota issues
+                const MAX_HISTORY_ITEMS = 50;
+                if (state.history.length > MAX_HISTORY_ITEMS) {
+                    state.history = state.history.slice(0, MAX_HISTORY_ITEMS);
+                }
+                localStorage.setItem('batch-generator-history', JSON.stringify(state.history));
+            } catch (error) {
+                if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
+                    console.warn('localStorage quota exceeded. Clearing oldest history items...');
+                    // Try to save with fewer items
+                    if (state.history.length > 10) {
+                        state.history = state.history.slice(0, 10);
+                        try {
+                            localStorage.setItem('batch-generator-history', JSON.stringify(state.history));
+                        } catch (e2) {
+                            console.error('Still cannot save history. Clearing all history.');
+                            state.history = [];
+                            localStorage.removeItem('batch-generator-history');
+                        }
+                    } else {
+                        // If still failing with 10 items, clear history
+                        console.error('Cannot save history even with reduced items. Clearing history.');
+                        state.history = [];
+                        localStorage.removeItem('batch-generator-history');
+                    }
+                } else {
+                    console.error('Error saving history:', error);
+                }
+            }
         }
 
         // Add item to history
         async function addToHistory(imageUrl, prompt, dimensions) {
-            const imageBase64 = await blobUrlToBase64(imageUrl);
-            if (!imageBase64) {
-                console.error('Failed to convert image to base64');
-                return;
-            }
+            try {
+                const imageBase64 = await blobUrlToBase64(imageUrl);
+                if (!imageBase64) {
+                    console.error('Failed to convert image to base64');
+                    return;
+                }
 
-            const historyItem = {
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                imageBase64: imageBase64,
-                prompt: prompt,
-                dimensions: dimensions,
-                timestamp: new Date().toISOString(),
-                selected: false
-            };
-            state.history.unshift(historyItem); // Add to beginning
-            saveHistory();
-            renderHistory();
+                const historyItem = {
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    imageBase64: imageBase64,
+                    prompt: prompt,
+                    dimensions: dimensions,
+                    timestamp: new Date().toISOString(),
+                    selected: false
+                };
+                state.history.unshift(historyItem); // Add to beginning
+                
+                // Limit history to 50 items before saving
+                const MAX_HISTORY_ITEMS = 50;
+                if (state.history.length > MAX_HISTORY_ITEMS) {
+                    state.history = state.history.slice(0, MAX_HISTORY_ITEMS);
+                }
+                
+                saveHistory();
+                renderHistory();
+            } catch (error) {
+                console.error('Error adding to history:', error);
+                // Continue execution even if history fails
+            }
         }
 
         // Render history grid
