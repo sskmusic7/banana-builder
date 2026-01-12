@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍌 Batch Prompt Generator - AI Image Generator</title>
+    <!-- Libraries for PDF and ZIP export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --primary: #667eea;
@@ -340,6 +343,93 @@
             color: var(--primary-dark);
         }
 
+        .history-section {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .history-item {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 10px;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .history-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .history-item.selected {
+            border-color: var(--primary);
+            background: #f0f0ff;
+        }
+
+        .history-item-checkbox {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .history-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .history-item-prompt {
+            font-size: 0.85em;
+            color: #666;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .history-item-date {
+            font-size: 0.75em;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .select-all-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         .result-actions {
             display: flex;
             gap: 8px;
@@ -627,6 +717,28 @@
                 <div class="results-grid" id="resultsGrid"></div>
             </div>
         </div>
+
+        <!-- History Section -->
+        <div class="history-section section" id="historySection">
+            <div class="history-header">
+                <h2 style="margin: 0; font-size: 1.5em;">📚 Generation History</h2>
+                <div class="history-controls">
+                    <div class="select-all-controls">
+                        <button class="btn" id="selectAllBtn" style="background: #6c757d; color: white;">Select All</button>
+                        <button class="btn" id="deselectAllBtn" style="background: #6c757d; color: white;">Deselect All</button>
+                    </div>
+                    <button class="btn btn-success" id="exportPdfBtn">📄 Export PDF</button>
+                    <button class="btn btn-primary" id="exportZipBtn">📦 Export ZIP</button>
+                    <button class="btn btn-danger" id="clearHistoryBtn">🗑️ Clear History</button>
+                </div>
+            </div>
+            <div class="history-grid" id="historyGrid">
+                <!-- History items will be added here dynamically -->
+            </div>
+            <p id="noHistoryMessage" style="text-align: center; color: #999; padding: 20px; display: none;">
+                No generation history yet. Generate some images to see them here!
+            </p>
+        </div>
     </div>
 
     <script>
@@ -636,7 +748,8 @@
             isProcessing: false,
             shouldStop: false,
             currentIndex: 0,
-            uploadedImages: [] // Array of {base64, mimeType, name, preview}
+            uploadedImages: [], // Array of {base64, mimeType, name, preview}
+            history: [] // Array of {id, imageBase64, prompt, timestamp, selected}
         };
 
         const elements = {
@@ -662,7 +775,15 @@
             resultsGrid: document.getElementById('resultsGrid'),
             fileUploadArea: document.getElementById('fileUploadArea'),
             imageInput: document.getElementById('imageInput'),
-            imagePreviews: document.getElementById('imagePreviews')
+            imagePreviews: document.getElementById('imagePreviews'),
+            historySection: document.getElementById('historySection'),
+            historyGrid: document.getElementById('historyGrid'),
+            noHistoryMessage: document.getElementById('noHistoryMessage'),
+            selectAllBtn: document.getElementById('selectAllBtn'),
+            deselectAllBtn: document.getElementById('deselectAllBtn'),
+            exportPdfBtn: document.getElementById('exportPdfBtn'),
+            exportZipBtn: document.getElementById('exportZipBtn'),
+            clearHistoryBtn: document.getElementById('clearHistoryBtn')
         };
 
         // Load saved API keys and settings
@@ -1019,6 +1140,12 @@
                     });
 
                     renderResult(finalPrompt, imageUrl, state.results.length - 1);
+                    
+                    // Add to history
+                    await addToHistory(imageUrl, finalPrompt, {
+                        width: parseInt(elements.width.value),
+                        height: parseInt(elements.height.value)
+                    });
                 } catch (error) {
                     prompt.status = 'error';
                     prompt.error = error.message;
@@ -1343,6 +1470,284 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // ============================================
+        // History Management
+        // ============================================
+
+        // Convert blob URL to base64
+        async function blobUrlToBase64(blobUrl) {
+            try {
+                const response = await fetch(blobUrl);
+                const blob = await response.blob();
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64 = reader.result.split(',')[1];
+                        resolve(base64);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error('Error converting blob URL to base64:', error);
+                return null;
+            }
+        }
+
+        // Load history from localStorage
+        function loadHistory() {
+            const stored = localStorage.getItem('batch-generator-history');
+            if (stored) {
+                try {
+                    state.history = JSON.parse(stored);
+                } catch (e) {
+                    state.history = [];
+                }
+            }
+            renderHistory();
+        }
+
+        // Save history to localStorage
+        function saveHistory() {
+            localStorage.setItem('batch-generator-history', JSON.stringify(state.history));
+        }
+
+        // Add item to history
+        async function addToHistory(imageUrl, prompt, dimensions) {
+            const imageBase64 = await blobUrlToBase64(imageUrl);
+            if (!imageBase64) {
+                console.error('Failed to convert image to base64');
+                return;
+            }
+
+            const historyItem = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                imageBase64: imageBase64,
+                prompt: prompt,
+                dimensions: dimensions,
+                timestamp: new Date().toISOString(),
+                selected: false
+            };
+            state.history.unshift(historyItem); // Add to beginning
+            saveHistory();
+            renderHistory();
+        }
+
+        // Render history grid
+        function renderHistory() {
+            if (state.history.length === 0) {
+                elements.historyGrid.innerHTML = '';
+                elements.noHistoryMessage.style.display = 'block';
+                return;
+            }
+
+            elements.noHistoryMessage.style.display = 'none';
+            elements.historyGrid.innerHTML = state.history.map(item => {
+                const date = new Date(item.timestamp);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                const promptPreview = item.prompt.length > 100 
+                    ? item.prompt.substring(0, 100) + '...' 
+                    : item.prompt;
+                
+                return `
+                    <div class="history-item ${item.selected ? 'selected' : ''}" data-id="${item.id}">
+                        <input type="checkbox" class="history-item-checkbox" ${item.selected ? 'checked' : ''} 
+                               onchange="toggleHistoryItem('${item.id}')" />
+                        <img src="data:image/png;base64,${item.imageBase64}" alt="Generated" />
+                        <div class="history-item-prompt" title="${escapeHtml(item.prompt)}">${escapeHtml(promptPreview)}</div>
+                        <div class="history-item-date">${dateStr}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle history item selection
+        window.toggleHistoryItem = function(id) {
+            const item = state.history.find(h => h.id === id);
+            if (item) {
+                item.selected = !item.selected;
+                saveHistory();
+                renderHistory();
+            }
+        };
+
+        // Select all history items
+        elements.selectAllBtn.addEventListener('click', () => {
+            state.history.forEach(item => item.selected = true);
+            saveHistory();
+            renderHistory();
+        });
+
+        // Deselect all history items
+        elements.deselectAllBtn.addEventListener('click', () => {
+            state.history.forEach(item => item.selected = false);
+            saveHistory();
+            renderHistory();
+        });
+
+        // Clear history
+        elements.clearHistoryBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all history? This cannot be undone.')) {
+                state.history = [];
+                saveHistory();
+                renderHistory();
+                alert('History cleared successfully!');
+            }
+        });
+
+        // Export to PDF
+        elements.exportPdfBtn.addEventListener('click', async () => {
+            const selected = state.history.filter(item => item.selected);
+            
+            if (selected.length === 0) {
+                alert('Please select at least one item to export');
+                return;
+            }
+
+            elements.exportPdfBtn.disabled = true;
+            elements.exportPdfBtn.textContent = '⏳ Generating PDF...';
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 15;
+                const imageWidth = pageWidth - (margin * 2);
+                let yPos = margin;
+
+                for (let i = 0; i < selected.length; i++) {
+                    const item = selected[i];
+                    
+                    // Add new page if not first item
+                    if (i > 0) {
+                        pdf.addPage();
+                        yPos = margin;
+                    }
+
+                    // Convert base64 to image
+                    const img = new Image();
+                    img.src = `data:image/png;base64,${item.imageBase64}`;
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = () => {
+                            try {
+                                // Calculate image height to fit width
+                                const aspectRatio = img.height / img.width;
+                                const imageHeight = imageWidth * aspectRatio;
+                                
+                                // Check if image fits on page
+                                if (yPos + imageHeight > pageHeight - margin - 40) {
+                                    pdf.addPage();
+                                    yPos = margin;
+                                }
+                                
+                                // Add image
+                                pdf.addImage(img, 'PNG', margin, yPos, imageWidth, imageHeight);
+                                yPos += imageHeight + 10;
+                                
+                                // Add prompt text
+                                const promptLines = pdf.splitTextToSize(item.prompt, imageWidth);
+                                const promptHeight = promptLines.length * 5;
+                                
+                                // Check if prompt fits on page
+                                if (yPos + promptHeight > pageHeight - margin) {
+                                    pdf.addPage();
+                                    yPos = margin;
+                                }
+                                
+                                pdf.setFontSize(10);
+                                pdf.text('Prompt:', margin, yPos);
+                                yPos += 5;
+                                pdf.setFontSize(8);
+                                pdf.text(promptLines, margin, yPos);
+                                yPos += promptHeight + 10;
+                                
+                                resolve();
+                            } catch (err) {
+                                reject(err);
+                            }
+                        };
+                        img.onerror = () => {
+                            reject(new Error(`Failed to load image ${i + 1}`));
+                        };
+                    });
+                }
+
+                pdf.save(`batch-generator-${Date.now()}.pdf`);
+                alert(`PDF exported successfully with ${selected.length} item(s)!`);
+            } catch (error) {
+                console.error('PDF export error:', error);
+                alert(`Error exporting PDF: ${error.message}`);
+            } finally {
+                elements.exportPdfBtn.disabled = false;
+                elements.exportPdfBtn.textContent = '📄 Export PDF';
+            }
+        });
+
+        // Export to ZIP
+        elements.exportZipBtn.addEventListener('click', async () => {
+            const selected = state.history.filter(item => item.selected);
+            
+            if (selected.length === 0) {
+                alert('Please select at least one item to export');
+                return;
+            }
+
+            elements.exportZipBtn.disabled = true;
+            elements.exportZipBtn.textContent = '⏳ Creating ZIP...';
+
+            try {
+                const zip = new JSZip();
+                const promptsText = [];
+
+                for (let i = 0; i < selected.length; i++) {
+                    const item = selected[i];
+                    const date = new Date(item.timestamp);
+                    const filename = `image-${i + 1}-${date.getTime()}.png`;
+                    
+                    // Add image to zip
+                    const imageData = atob(item.imageBase64);
+                    const imageBytes = new Uint8Array(imageData.length);
+                    for (let j = 0; j < imageData.length; j++) {
+                        imageBytes[j] = imageData.charCodeAt(j);
+                    }
+                    zip.file(filename, imageBytes);
+                    
+                    // Add prompt to text array
+                    promptsText.push(`--- Image ${i + 1}: ${filename} ---\n${item.prompt}\n`);
+                }
+
+                // Add prompts text file
+                zip.file('prompts.txt', promptsText.join('\n\n'));
+
+                // Generate and download ZIP
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `batch-generator-${Date.now()}.zip`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                alert(`ZIP exported successfully with ${selected.length} item(s)!`);
+            } catch (error) {
+                console.error('ZIP export error:', error);
+                alert(`Error exporting ZIP: ${error.message}`);
+            } finally {
+                elements.exportZipBtn.disabled = false;
+                elements.exportZipBtn.textContent = '📦 Export ZIP';
+            }
+        });
+
+        // Initialize history on load
+        loadHistory();
 
         // Add start button after parsing
         elements.parseBtn.addEventListener('click', () => {
