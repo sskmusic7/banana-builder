@@ -827,13 +827,11 @@ Output dimensions: ${parseInt(elements.width.value)}x${parseInt(elements.height.
             const model = elements.modelSelect.value;
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-            // Add ultra-realistic skin and lighting enhancement to prompt
-            let enhancedPrompt = prompt + getRealisticEnhancement();
-
+            // Note: prompt already includes getRealisticEnhancement() from the event handler
             const contents = [{
                 role: "user",
                 parts: [
-                    { text: `${enhancedPrompt}\n\nOutput dimensions: ${width}x${height}` },
+                    { text: `${prompt}\n\nOutput dimensions: ${width}x${height}` },
                     {
                         inline_data: {
                             mime_type: firstFrameMimeType || "image/png",
