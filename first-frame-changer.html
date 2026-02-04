@@ -681,6 +681,54 @@
             }, 5000);
         }
 
+        // Generate ultra-realistic skin, lighting, and camera realism enhancement
+        function getRealisticEnhancement() {
+            return `
+
+ULTRA-REALISTIC SKIN & LIGHTING REQUIREMENTS (CRITICAL):
+
+SKIN REALISM (FOCUS):
+- Visible pores and fine micro-texture throughout the skin
+- Natural acne marks, blemishes, and imperfections with organic variation (not patterned or symmetrical)
+- Uneven pigmentation and subtle redness in natural areas (cheeks, nose, around mouth)
+- Natural oil sheen ONLY on high points (cheekbones, nose bridge, forehead), matte elsewhere
+- NO symmetry correction - natural facial asymmetry preserved
+- Skin must look healthy and alive, not dull, not glossy
+- Luminous quality must come from real light only, not digital effects
+- NO retouching, NO smoothing, NO beauty filters
+- Natural imperfections must be preserved (freckles, moles, fine lines, texture variations)
+
+COLOR & LIGHT (IMPORTANT):
+- Real daylight with slight warmth, NOT neutral grey or cool tones
+- Natural contrast (NOT flat, NOT cinematic, NOT over-dramatic)
+- Accurate white balance - colors must be true-to-life
+- True-to-life colors: skin tones rich and dimensional, fabrics clearly defined, objects have natural color depth
+- NO faded colors, NO dusty tones, NO pastel palette, NO washed-out aesthetic
+- Colors must be vibrant but natural, not oversaturated
+
+CAMERA BEHAVIOR:
+- Phone-camera realism: slight edge softness, natural focus falloff
+- Subtle sensor grain appropriate to the lighting conditions
+- Natural depth of field where appropriate
+- No artificial sharpening or over-processing
+
+OVERALL AESTHETIC:
+- Modern, clean, minimal, intimate, non-commercial feel
+- Editorial-documentary aesthetic
+- Must feel like a real person, real skin, real moment
+- Authentic and unposed quality
+
+STRICT NEGATIVES (AVOID):
+- Faded colors, pastel tones, beige aesthetic
+- Flat lighting, overexposed whites, harsh shadows
+- AI glow, plastic skin, skincare-ad look
+- Studio lighting, artificial lighting setups
+- Cartoon style, 3D render style, illustration style
+- Text, logos, watermarks
+- Over-smoothing, airbrushing, digital retouching effects
+- Unnatural symmetry, perfect skin, flawless appearance`;
+        }
+
         elements.generateBtn.addEventListener('click', async () => {
             if (!elements.apiKey.value.trim()) {
                 showAlert('Please enter your Gemini API key', 'error');
@@ -746,6 +794,9 @@ Output dimensions: ${parseInt(elements.width.value)}x${parseInt(elements.height.
                     prompt += `\n\nAdditional user instructions: ${additionalPrompt}`;
                 }
 
+                // Add ultra-realistic skin and lighting enhancement
+                prompt += getRealisticEnhancement();
+
                 const imageUrl = await generateImage(
                     elements.apiKey.value,
                     prompt,
@@ -776,10 +827,13 @@ Output dimensions: ${parseInt(elements.width.value)}x${parseInt(elements.height.
             const model = elements.modelSelect.value;
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
+            // Add ultra-realistic skin and lighting enhancement to prompt
+            let enhancedPrompt = prompt + getRealisticEnhancement();
+
             const contents = [{
                 role: "user",
                 parts: [
-                    { text: `${prompt}\n\nOutput dimensions: ${width}x${height}` },
+                    { text: `${enhancedPrompt}\n\nOutput dimensions: ${width}x${height}` },
                     {
                         inline_data: {
                             mime_type: firstFrameMimeType || "image/png",
