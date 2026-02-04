@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📝 Prompt Metadata Extractor - Banana Builder</title>
+    <!-- Library for JPEG EXIF -->
+    <script src="https://cdn.jsdelivr.net/npm/piexifjs@2.0.0/piexif.js"></script>
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --success: #28a745;
+            --danger: #dc3545;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 40px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .home-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .home-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .upload-area {
+            border: 3px dashed var(--primary);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            background: #e9ecef;
+            border-color: var(--primary-dark);
+        }
+
+        .upload-area.dragover {
+            background: #e3f2fd;
+            border-color: var(--success);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .result-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .result-filename {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .result-prompt {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #333;
+            margin-bottom: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        .result-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .summary {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .summary-stats {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="home-btn">← Home</a>
+        
+        <header>
+            <h1>📝 Prompt Metadata Extractor</h1>
+            <p class="subtitle">Extract prompts embedded in image metadata</p>
+        </header>
+
+        <div class="section">
+            <div class="section-title">Upload Images</div>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drop images here or click to browse</div>
+                <div class="upload-hint">Supports PNG (text chunks) and JPEG (EXIF)</div>
+                <input type="file" id="fileInput" multiple accept="image/*">
+            </div>
+        </div>
+
+        <div id="summarySection" class="summary" style="display: none;">
+            <div class="section-title">Extraction Summary</div>
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalCount">0</div>
+                    <div class="stat-label">Total Images</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="successCount">0</div>
+                    <div class="stat-label">Prompts Found</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="errorCount">0</div>
+                    <div class="stat-label">No Metadata</div>
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <button class="btn btn-success" onclick="exportAllPrompts()">Export All Prompts (TXT)</button>
+                <button class="btn btn-primary" onclick="copyAllPrompts()">Copy All Prompts</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Extracted Prompts</div>
+            <div id="resultsGrid" class="results-grid">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🖼️</div>
+                    <div>No images processed yet. Upload images to extract prompts.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            results: []
+        };
+
+        const elements = {
+            uploadArea: document.getElementById('uploadArea'),
+            fileInput: document.getElementById('fileInput'),
+            resultsGrid: document.getElementById('resultsGrid'),
+            summarySection: document.getElementById('summarySection'),
+            totalCount: document.getElementById('totalCount'),
+            successCount: document.getElementById('successCount'),
+            errorCount: document.getElementById('errorCount')
+        };
+
+        // Setup upload area
+        elements.uploadArea.addEventListener('click', () => {
+            elements.fileInput.click();
+        });
+
+        elements.fileInput.addEventListener('change', (e) => {
+            handleFiles(Array.from(e.target.files));
+        });
+
+        // Drag and drop
+        elements.uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            elements.uploadArea.classList.add('dragover');
+        });
+
+        elements.uploadArea.addEventListener('dragleave', () => {
+            elements.uploadArea.classList.remove('dragover');
+        });
+
+        elements.uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            elements.uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            handleFiles(files);
+        });
+
+        // Extract prompt from PNG text chunk
+        function extractPNGPrompt(arrayBuffer) {
+            try {
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                // Check PNG signature
+                if (uint8Array[0] !== 0x89 || uint8Array[1] !== 0x50 || 
+                    uint8Array[2] !== 0x4E || uint8Array[3] !== 0x47) {
+                    return null;
+                }
+
+                let pos = 8; // Skip PNG signature
+                
+                // Search for tEXt chunks
+                while (pos < uint8Array.length - 12) {
+                    // Read chunk length
+                    const view = new DataView(arrayBuffer, pos);
+                    const chunkLength = view.getUint32(0, false);
+                    
+                    // Read chunk type
+                    const chunkType = String.fromCharCode(
+                        uint8Array[pos + 4],
+                        uint8Array[pos + 5],
+                        uint8Array[pos + 6],
+                        uint8Array[pos + 7]
+                    );
+                    
+                    if (chunkType === 'tEXt') {
+                        // Read chunk data (keyword + null + text)
+                        const chunkDataStart = pos + 8;
+                        let nullPos = -1;
+                        for (let i = chunkDataStart; i < chunkDataStart + chunkLength; i++) {
+                            if (uint8Array[i] === 0) {
+                                nullPos = i;
+                                break;
+                            }
+                        }
+                        
+                        if (nullPos !== -1) {
+                            const keywordBytes = uint8Array.slice(chunkDataStart, nullPos);
+                            const textBytes = uint8Array.slice(nullPos + 1, chunkDataStart + chunkLength);
+                            const keyword = new TextDecoder().decode(keywordBytes);
+                            
+                            if (keyword === 'Prompt') {
+                                return new TextDecoder().decode(textBytes);
+                            }
+                        }
+                    }
+                    
+                    // Move to next chunk (length + type + data + CRC)
+                    pos += 8 + chunkLength + 4;
+                    
+                    // Stop if we hit IEND
+                    if (chunkType === 'IEND') break;
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Error extracting PNG prompt:', error);
+                return null;
+            }
+        }
+
+        // Extract prompt from JPEG EXIF
+        function extractJPEGPrompt(arrayBuffer) {
+            try {
+                const binaryString = Array.from(new Uint8Array(arrayBuffer))
+                    .map(byte => String.fromCharCode(byte))
+                    .join('');
+                
+                let exifObj;
+                try {
+                    exifObj = piexif.load(binaryString);
+                } catch (e) {
+                    return null; // No EXIF data
+                }
+                
+                // Try UserComment first (JSON format)
+                if (exifObj.Exif && exifObj.Exif[piexif.ExifIFD.UserComment]) {
+                    const userComment = exifObj.Exif[piexif.ExifIFD.UserComment];
+                    try {
+                        const parsed = JSON.parse(userComment);
+                        if (parsed.prompt) {
+                            return parsed.prompt;
+                        }
+                    } catch (e) {
+                        // Not JSON, try as plain text
+                        if (typeof userComment === 'string' && userComment.length > 0) {
+                            return userComment;
+                        }
+                    }
+                }
+                
+                // Try ImageDescription as fallback
+                if (exifObj["0th"] && exifObj["0th"][piexif.ImageIFD.ImageDescription]) {
+                    const desc = exifObj["0th"][piexif.ImageIFD.ImageDescription];
+                    if (desc && desc.includes('Prompt:')) {
+                        // Extract prompt from description
+                        const match = desc.match(/Prompt:\s*(.+)/);
+                        if (match) {
+                            return match[1];
+                        }
+                    }
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Error extracting JPEG prompt:', error);
+                return null;
+            }
+        }
+
+        // Process a single file
+        async function processFile(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const arrayBuffer = e.target.result;
+                    let prompt = null;
+                    
+                    // Try PNG first
+                    if (file.type === 'image/png' || file.name.toLowerCase().endsWith('.png')) {
+                        prompt = extractPNGPrompt(arrayBuffer);
+                    }
+                    
+                    // Try JPEG if PNG didn't work or if it's a JPEG
+                    if (!prompt && (file.type === 'image/jpeg' || file.type === 'image/jpg' || 
+                        file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg'))) {
+                        prompt = extractJPEGPrompt(arrayBuffer);
+                    }
+                    
+                    // If still no prompt and it's PNG, try anyway (might be misidentified)
+                    if (!prompt && file.type.startsWith('image/')) {
+                        prompt = extractPNGPrompt(arrayBuffer) || extractJPEGPrompt(arrayBuffer);
+                    }
+                    
+                    // Create preview URL
+                    const blob = new Blob([arrayBuffer], { type: file.type });
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    resolve({
+                        filename: file.name,
+                        prompt: prompt,
+                        imageUrl: imageUrl,
+                        success: prompt !== null
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Handle multiple files
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            // Clear empty state
+            if (state.results.length === 0) {
+                elements.resultsGrid.innerHTML = '';
+            }
+            
+            // Show loading
+            const loadingCard = document.createElement('div');
+            loadingCard.className = 'result-card';
+            loadingCard.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div class="loading"></div>
+                    <div style="margin-top: 10px; color: #666;">Processing ${files.length} image(s)...</div>
+                </div>
+            `;
+            elements.resultsGrid.appendChild(loadingCard);
+            
+            // Process all files
+            const results = [];
+            for (const file of files) {
+                const result = await processFile(file);
+                results.push(result);
+                state.results.push(result);
+                renderResult(result);
+            }
+            
+            // Remove loading card
+            loadingCard.remove();
+            
+            // Update summary
+            updateSummary();
+        }
+
+        // Render a single result
+        function renderResult(result) {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            
+            const statusClass = result.success ? 'status-success' : 'status-error';
+            const statusText = result.success ? '✓ Prompt Found' : '✗ No Metadata';
+            
+            card.innerHTML = `
+                <img src="${result.imageUrl}" alt="${result.filename}" class="result-image" />
+                <div class="result-filename">${escapeHtml(result.filename)}</div>
+                <div class="result-status ${statusClass}">${statusText}</div>
+                ${result.success ? `
+                    <div class="result-prompt">${escapeHtml(result.prompt)}</div>
+                    <div class="result-actions">
+                        <button class="btn btn-primary btn-small" onclick="copyPrompt('${state.results.indexOf(result)}')">Copy Prompt</button>
+                    </div>
+                ` : `
+                    <div class="result-prompt" style="color: #999; font-style: italic;">No prompt metadata found in this image.</div>
+                `}
+            `;
+            
+            elements.resultsGrid.appendChild(card);
+        }
+
+        // Update summary statistics
+        function updateSummary() {
+            const total = state.results.length;
+            const success = state.results.filter(r => r.success).length;
+            const errors = total - success;
+            
+            elements.totalCount.textContent = total;
+            elements.successCount.textContent = success;
+            elements.errorCount.textContent = errors;
+            
+            elements.summarySection.style.display = 'block';
+        }
+
+        // Copy single prompt
+        window.copyPrompt = function(index) {
+            const result = state.results[index];
+            if (result && result.prompt) {
+                navigator.clipboard.writeText(result.prompt).then(() => {
+                    alert('Prompt copied to clipboard!');
+                });
+            }
+        };
+
+        // Copy all prompts
+        function copyAllPrompts() {
+            const prompts = state.results
+                .filter(r => r.success)
+                .map((r, i) => `${i + 1}. ${r.filename}\n${r.prompt}\n`)
+                .join('\n---\n\n');
+            
+            if (prompts.length === 0) {
+                alert('No prompts to copy!');
+                return;
+            }
+            
+            navigator.clipboard.writeText(prompts).then(() => {
+                alert('All prompts copied to clipboard!');
+            });
+        }
+
+        // Export all prompts to TXT file
+        function exportAllPrompts() {
+            const prompts = state.results
+                .filter(r => r.success)
+                .map((r, i) => `=== ${i + 1}. ${r.filename} ===\n\n${r.prompt}\n\n`)
+                .join('---\n\n');
+            
+            if (prompts.length === 0) {
+                alert('No prompts to export!');
+                return;
+            }
+            
+            const blob = new Blob([prompts], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `extracted-prompts-${new Date().toISOString().split('T')[0]}.txt`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
