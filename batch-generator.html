@@ -661,8 +661,8 @@
             <div class="section-title">📝 Prompts</div>
             
             <div class="form-group">
-                <label>Enter prompts (numbered items, double newlines, or one per line)</label>
-                <textarea id="promptsInput" rows="10" placeholder="Paste your prompts here. Supports:&#10;&#10;1. Numbered prompts (1., 2., 3., etc.)&#10;2. Double newlines between prompts&#10;3. One prompt per line&#10;&#10;Commas within prompts are preserved."></textarea>
+                <label>Enter prompts (JSON, markdown, numbered items, double newlines, or one per line)</label>
+                <textarea id="promptsInput" rows="10" placeholder="Paste your prompts here. Supports:&#10;&#10;1. JSON format with prompts array (pose, outfit, setting fields)&#10;2. Markdown format with ## PROMPT X: sections&#10;3. Numbered prompts (1., 2., 3., etc.)&#10;4. Double newlines between prompts&#10;5. One prompt per line&#10;&#10;Commas within prompts are preserved."></textarea>
             </div>
 
             <div class="form-group">
@@ -924,31 +924,190 @@
                 return;
             }
 
-            // Smart parsing: Handle numbered prompts, double newlines, or single newlines
+            // Smart parsing: Handle JSON, markdown, numbered prompts, double newlines, or single newlines
             let prompts = [];
+            let referenceInstructions = '';
             
-            // First, remove "--- PROMPT X: filename ---" header lines
-            text = text.replace(/^---\s*PROMPT\s+\d+:\s*[^\n]+?\s*---\s*/gmi, '');
+            // Method 0: Check for JSON format first
+            try {
+                const jsonData = JSON.parse(text);
+                if (jsonData && jsonData.prompts && Array.isArray(jsonData.prompts)) {
+                    // Handle reference instructions
+                    if (jsonData.reference_instructions) {
+                        referenceInstructions = jsonData.reference_instructions;
+                        // Optionally add to extraPromptGuidance if empty
+                        if (!elements.extraPromptGuidance.value.trim()) {
+                            elements.extraPromptGuidance.value = referenceInstructions;
+                        }
+                    }
+                    
+                    // Parse each prompt object
+                    prompts = jsonData.prompts.map((item, index) => {
+                        let promptParts = [];
+                        
+                        // Add title if available
+                        if (item.title) {
+                            promptParts.push(item.title);
+                        }
+                        
+                        // Combine pose, outfit, and setting with proper formatting
+                        // Pose comes first without label (matching markdown format)
+                        if (item.pose) promptParts.push(item.pose);
+                        if (item.outfit) promptParts.push(`Outfit: ${item.outfit}`);
+                        if (item.setting) promptParts.push(`Setting: ${item.setting}`);
+                        
+                        // Include any other text fields that might exist
+                        const knownFields = ['id', 'title', 'pose', 'outfit', 'setting'];
+                        Object.keys(item).forEach(key => {
+                            if (!knownFields.includes(key) && typeof item[key] === 'string' && item[key].trim()) {
+                                promptParts.push(item[key]);
+                            }
+                        });
+                        
+                        // Combine all parts with spaces (not periods) for API compatibility
+                        let fullPrompt = promptParts.join(' ');
+                        
+                        // Prepend reference instructions if provided (only once, not duplicated)
+                        if (referenceInstructions && !fullPrompt.includes(referenceInstructions)) {
+                            fullPrompt = `${referenceInstructions} ${fullPrompt}`;
+                        }
+                        
+                        return fullPrompt;
+                    }).filter(p => p.length > 0);
+                    
+                    if (prompts.length > 0) {
+                        state.prompts = prompts.map((prompt, index) => ({
+                            id: index,
+                            text: prompt,
+                            status: 'pending',
+                            result: null,
+                            error: null
+                        }));
+                        
+                        renderPromptList();
+                        elements.promptList.style.display = 'block';
+                        return;
+                    }
+                }
+            } catch (e) {
+                // Not JSON, continue with other parsing methods
+            }
             
-            // Method 1: Check for numbered prompts (1., 2., 3., etc.)
-            // Use a regex to match numbered sections: number + title + content (until next number or end)
-            const numberedMatches = text.match(/\d+\.\s+[^\n]*(?:\n(?!\d+\.\s)[^\n]*)*/g);
-            if (numberedMatches && numberedMatches.length > 0) {
-                // Extract content from each numbered section
-                prompts = numberedMatches.map(match => {
-                    // Remove the number prefix, keep title and content, replace newlines with spaces
-                    const fullPrompt = match
-                        .replace(/^\d+\.\s+/, '') // Remove "1. " prefix
-                        .replace(/\n+/g, ' ')     // Replace newlines with spaces
-                        .replace(/\s+/g, ' ')      // Normalize multiple spaces
-                        .trim();
-                    return fullPrompt;
-                }).filter(p => {
-                    // Filter out empty prompts and lines that are ONLY "---" separators
-                    return p.length > 0 && !p.match(/^---\s*$/);
-                });
-            } else {
-                // Method 2: Split by double newlines (paragraph breaks)
+            // Method 1: Check for markdown format with ## PROMPT X: sections
+            // First, extract Core Reference Instructions if present
+            const coreInstructionsMatch = text.match(/##\s*Core\s+Reference\s+Instructions[\s\S]*?(?=---|##\s*PROMPT|\d+\.|$)/i);
+            if (coreInstructionsMatch) {
+                const coreInstructions = coreInstructionsMatch[0]
+                    .replace(/##\s*Core\s+Reference\s+Instructions[^\n]*\n?/i, '')
+                    .replace(/^[\*\-\s]+/gm, '') // Remove markdown list markers
+                    .replace(/\n+/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                
+                if (coreInstructions && !elements.extraPromptGuidance.value.trim()) {
+                    elements.extraPromptGuidance.value = coreInstructions;
+                }
+            }
+            
+            // Initialize prompts array
+            prompts = [];
+            
+            // Method 1: Check for markdown format with ## PROMPT X: sections
+            // Split the text by ## PROMPT markers to get individual prompt sections
+            const promptSections = text.split(/(?=##\s*PROMPT\s+\d+:)/i);
+            
+            if (promptSections.length > 1) {
+                // Filter out the first section if it's not a prompt (e.g., Core Reference Instructions)
+                prompts = promptSections
+                    .filter(section => /^##\s*PROMPT\s+\d+:/i.test(section))
+                    .map(section => {
+                        // Extract everything after the ## PROMPT X: header
+                        let content = section.replace(/^##\s*PROMPT\s+\d+:[^\n]*\n?/i, '');
+                        
+                        // Remove everything from the first "---" separator line onwards
+                        // Handle various separator formats: \n---\n, \n---, ---\n, or just ---
+                        const separatorPatterns = [
+                            /\n---\n/,      // Newline before and after
+                            /\n---\s*\n/,  // Newline before, optional whitespace, newline after
+                            /\n---\s*$/,   // Newline before, at end of string
+                            /^---\s*\n/,   // At start, newline after
+                            /^---\s*$/m    // On its own line
+                        ];
+                        
+                        for (const pattern of separatorPatterns) {
+                            const match = content.match(pattern);
+                            if (match) {
+                                const index = content.indexOf(match[0]);
+                                content = content.substring(0, index);
+                                break;
+                            }
+                        }
+                        
+                        // Clean up whitespace
+                        content = content
+                            .replace(/\n\s*\n+/g, ' ') // Double+ newlines to single space
+                            .replace(/\n/g, ' ') // Single newlines to space
+                            .replace(/\s+/g, ' ') // Multiple spaces to single
+                            .trim();
+                        
+                        return content;
+                    })
+                    .filter(p => {
+                        // Filter out empty prompts and separator-only content
+                        return p.length > 0 && !p.match(/^---\s*$/);
+                    });
+            }
+            
+            // Method 2: If markdown didn't work, check for numbered prompts (1., 2., 3., etc.)
+            if (prompts.length === 0) {
+                // Split by numbered sections to ensure we capture complete prompts
+                const numberedSections = text.split(/(?=\d+\.\s+)/);
+                
+                if (numberedSections.length > 1) {
+                    prompts = numberedSections
+                        .filter(section => /^\d+\.\s+/.test(section))
+                        .map(section => {
+                            // Remove the number prefix
+                            let content = section.replace(/^\d+\.\s+/, '');
+                            
+                            // Remove separator lines
+                            content = content.replace(/^---\s*$/gm, '');
+                            
+                            // Clean up whitespace
+                            content = content
+                                .replace(/\n\s*\n+/g, ' ') // Double+ newlines to single space
+                                .replace(/\n/g, ' ') // Single newlines to space
+                                .replace(/\s+/g, ' ') // Multiple spaces to single
+                                .trim();
+                            
+                            return content;
+                        })
+                        .filter(p => {
+                            // Filter out empty prompts and lines that are ONLY "---" separators
+                            return p.length > 0 && !p.match(/^---\s*$/);
+                        });
+                }
+                
+                // If split method didn't work, try regex fallback
+                if (prompts.length === 0) {
+                    const numberedMatches = text.match(/\d+\.\s+[^\n]*(?:\n(?!\d+\.\s)[^\n]*)*/g);
+                    if (numberedMatches && numberedMatches.length > 0) {
+                        prompts = numberedMatches.map(match => {
+                            const fullPrompt = match
+                                .replace(/^\d+\.\s+/, '')
+                                .replace(/\n+/g, ' ')
+                                .replace(/\s+/g, ' ')
+                                .trim();
+                            return fullPrompt;
+                        }).filter(p => {
+                            return p.length > 0 && !p.match(/^---\s*$/);
+                        });
+                    }
+                }
+            }
+            
+            // Method 3: If still no prompts, try splitting by double newlines
+            if (prompts.length === 0) {
                 if (text.includes('\n\n')) {
                     prompts = text
                         .split(/\n\n+/)
@@ -958,7 +1117,7 @@
                             return p.length > 0 && !p.match(/^---\s*$/);
                         });
                 } else {
-                    // Method 3: Split by single newlines (one per line)
+                    // Method 4: Split by single newlines (one per line)
                     prompts = text
                         .split(/\n+/)
                         .map(p => p.trim())
