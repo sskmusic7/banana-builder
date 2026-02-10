@@ -700,6 +700,10 @@
                             <input type="checkbox" id="enhanceDating" style="width: auto; margin: 0;">
                             <span>Dating Appeal</span>
                         </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                            <input type="checkbox" id="preventAIStare" checked style="width: auto; margin: 0;">
+                            <span>🚫 Prevent AI Stare (Natural Candid)</span>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -866,9 +870,11 @@
         // Load enhancement settings
         const savedEnhancementEnabled = localStorage.getItem('batch-generator-enhancement-enabled') === 'true';
         const savedEnhancementOptions = JSON.parse(localStorage.getItem('batch-generator-enhancement-options') || '{"bodyShape":true,"realism":true,"cameraAngle":true,"luxury":false,"dating":false}');
+        const savedPreventAIStare = localStorage.getItem('batch-generator-prevent-ai-stare') !== 'false'; // Default to true
         
         const enableEnhancementCheckbox = document.getElementById('enableEnhancement');
         const enhancementOptionsDiv = document.getElementById('enhancementOptions');
+        const preventAIStareCheckbox = document.getElementById('preventAIStare');
         
         if (enableEnhancementCheckbox) {
             enableEnhancementCheckbox.checked = savedEnhancementEnabled;
@@ -880,6 +886,14 @@
             document.getElementById('enhanceCameraAngle').checked = savedEnhancementOptions.cameraAngle !== false;
             document.getElementById('enhanceLuxury').checked = savedEnhancementOptions.luxury === true;
             document.getElementById('enhanceDating').checked = savedEnhancementOptions.dating === true;
+            
+            // Set prevent AI stare checkbox (default to true)
+            if (preventAIStareCheckbox) {
+                preventAIStareCheckbox.checked = savedPreventAIStare;
+                preventAIStareCheckbox.addEventListener('change', () => {
+                    localStorage.setItem('batch-generator-prevent-ai-stare', preventAIStareCheckbox.checked);
+                });
+            }
             
             // Toggle enhancement options visibility
             enableEnhancementCheckbox.addEventListener('change', () => {
@@ -1044,6 +1058,59 @@
                 appeal: "Appealing presentation optimized for dating context. Natural, approachable appearance with authentic charm and genuine appeal.",
                 confidence: "Confident, engaging presence with natural charisma. Approachable confidence that feels authentic and attractive.",
                 authenticity: "Authentic, genuine appearance that feels real and relatable. Natural expressions and authentic personality visible."
+            },
+            antiAIStare: {
+                gazeDirections: [
+                    "looking off to the side",
+                    "gazing toward the left",
+                    "looking down and to the right",
+                    "eyes directed away from camera",
+                    "glancing over shoulder",
+                    "looking at something off-camera",
+                    "caught mid-glance",
+                    "eyes closed momentarily",
+                    "looking ahead down the path",
+                    "gazing contemplatively away"
+                ],
+                headAngles: [
+                    "head tilted slightly left",
+                    "head angled to the right",
+                    "chin tilted down",
+                    "face turned 3/4 away from camera",
+                    "head turned over shoulder",
+                    "semi-profile view",
+                    "profile view",
+                    "head angled away from straight-on position"
+                ],
+                midActions: [
+                    "mid-laugh, genuine laughter",
+                    "subtle smirk forming",
+                    "caught mid-sentence, mouth slightly open",
+                    "natural soft smile, not forced",
+                    "pensive expression, lost in thought",
+                    "subtle eye squint from natural smile",
+                    "relaxed jaw, mouth slightly parted",
+                    "authentic expression of joy",
+                    "contemplative look",
+                    "candid reaction",
+                    "caught mid-gesture",
+                    "mid-stride walking"
+                ],
+                catchlights: "cinematic catchlight in eyes, sparkle in eyes from natural light, light reflecting in pupils, natural eye moisture and light reflection, catchlight from window light, subtle eye highlights",
+                cameraAngles: [
+                    "shot from slightly off-axis angle",
+                    "camera positioned 15-20 degrees to the left",
+                    "three-quarter view, not straight-on",
+                    "over-the-shoulder perspective",
+                    "side angle capturing profile",
+                    "low angle looking up",
+                    "high angle looking down",
+                    "off-axis camera angle, not centered composition"
+                ],
+                photographyStyle: "Candid street photography aesthetic, Henri Cartier-Bresson style decisive moment, photojournalism approach, documentary photography, fly-on-the-wall perspective, unposed moment, stolen shot aesthetic, natural human behavior captured",
+                bodyLanguage: "Mid-motion, body slightly turned away from camera. Natural weight shift onto one leg. Hands in motion, not posed. Shoulders relaxed and asymmetrical. Caught mid-gesture. Dynamic stance showing movement. Authentic body positioning, not staged.",
+                technicalSpecs: "Deep depth of field keeping both subject AND background in sharp focus, no artificial bokeh, natural environmental context visible, f/8-f/11 aperture equivalent, realistic focus plane, natural light only, ambient light captured naturally, raw iPhone photo quality, unfiltered and authentic",
+                negativePrompts: "--no dead stare, blank expression, looking directly at camera, posed portrait, symmetrical face, perfect symmetry, statue-like pose, frozen expression, studio portrait gaze, headshot pose, lifeless eyes, no catchlights, flat eyes, direct eye contact, centered composition, straight-on angle, model pose, fashion shoot stare, AI generated look, robotic expression, uncanny valley, perfect skin, plastic skin, over-smoothed face, artificial lighting, studio background blur, fake bokeh"
             }
         };
 
@@ -1055,7 +1122,8 @@
                 injectRealism = false,
                 injectCameraAngle = false,
                 injectLuxury = false,
-                injectDating = false
+                injectDating = false,
+                preventAIStare = false
             } = options;
 
             // Detect body shape mentions and enhance
@@ -1121,6 +1189,53 @@
             if (injectDating) {
                 if (!enhanced.includes('appealing') && !enhanced.includes('attractive')) {
                     enhanced += ` ${knowledgeBase.dating.appeal} ${knowledgeBase.dating.authenticity}`;
+                }
+            }
+
+            // Prevent AI Stare - CRITICAL for natural, candid realism
+            if (preventAIStare) {
+                // Check if prompt already has AI stare prevention
+                const hasAIStarePrevention = enhanced.toLowerCase().includes('looking away') || 
+                    enhanced.toLowerCase().includes('gazing off') ||
+                    enhanced.toLowerCase().includes('not looking at camera') ||
+                    enhanced.toLowerCase().includes('candid moment');
+                
+                // Check for AI stare red flags
+                const hasAIStareFlags = enhanced.toLowerCase().includes('looking at camera') ||
+                    enhanced.toLowerCase().includes('direct gaze') ||
+                    enhanced.toLowerCase().includes('eye contact with viewer') ||
+                    enhanced.toLowerCase().includes('facing camera') ||
+                    enhanced.toLowerCase().includes('centered in frame') ||
+                    enhanced.toLowerCase().includes('posed portrait');
+                
+                if (!hasAIStarePrevention || hasAIStareFlags) {
+                    // Random selection function
+                    const random = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                    
+                    // Build anti-AI stare additions
+                    const gazeDirection = random(knowledgeBase.antiAIStare.gazeDirections);
+                    const headAngle = random(knowledgeBase.antiAIStare.headAngles);
+                    const midAction = random(knowledgeBase.antiAIStare.midActions);
+                    const cameraAngle = random(knowledgeBase.antiAIStare.cameraAngles);
+                    
+                    // Remove AI stare red flags if present
+                    enhanced = enhanced
+                        .replace(/\blooking at camera\b/gi, 'looking away from camera')
+                        .replace(/\bdirect gaze\b/gi, 'gaze directed away')
+                        .replace(/\beye contact with viewer\b/gi, 'eyes directed away from viewer')
+                        .replace(/\bfacing camera\b/gi, 'facing away from camera')
+                        .replace(/\bcentered in frame\b/gi, 'offset in frame')
+                        .replace(/\bposed portrait\b/gi, 'candid portrait');
+                    
+                    // Add anti-AI stare elements
+                    const antiAIAdditions = `${gazeDirection}. ${headAngle}. ${midAction}. ${knowledgeBase.antiAIStare.catchlights}. ${cameraAngle}. ${knowledgeBase.antiAIStare.bodyLanguage}. ${knowledgeBase.antiAIStare.photographyStyle}. ${knowledgeBase.antiAIStare.technicalSpecs}. Natural asymmetry in facial features and pose. Candid moment captured, subject not aware of camera.`;
+                    
+                    enhanced += ` ${antiAIAdditions}`;
+                    
+                    // Add negative prompts if not already present
+                    if (!enhanced.includes('--no dead stare') && !enhanced.includes('negative prompt')) {
+                        enhanced += ` ${knowledgeBase.antiAIStare.negativePrompts}`;
+                    }
                 }
             }
 
@@ -1349,13 +1464,16 @@
 
             // Apply AI enhancement if enabled
             const enableEnhancement = document.getElementById('enableEnhancement').checked;
-            if (enableEnhancement) {
+            const preventAIStareEnabled = document.getElementById('preventAIStare').checked;
+            
+            if (enableEnhancement || preventAIStareEnabled) {
                 const enhancementOptions = {
-                    injectBodyShape: document.getElementById('enhanceBodyShape').checked,
-                    injectRealism: document.getElementById('enhanceRealism').checked,
-                    injectCameraAngle: document.getElementById('enhanceCameraAngle').checked,
-                    injectLuxury: document.getElementById('enhanceLuxury').checked,
-                    injectDating: document.getElementById('enhanceDating').checked
+                    injectBodyShape: enableEnhancement && document.getElementById('enhanceBodyShape').checked,
+                    injectRealism: enableEnhancement && document.getElementById('enhanceRealism').checked,
+                    injectCameraAngle: enableEnhancement && document.getElementById('enhanceCameraAngle').checked,
+                    injectLuxury: enableEnhancement && document.getElementById('enhanceLuxury').checked,
+                    injectDating: enableEnhancement && document.getElementById('enhanceDating').checked,
+                    preventAIStare: preventAIStareEnabled // Always apply if enabled, regardless of other enhancements
                 };
                 
                 prompts = prompts.map(prompt => enhancePrompt(prompt, enhancementOptions));
