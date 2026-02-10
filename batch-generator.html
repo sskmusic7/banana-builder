@@ -671,6 +671,39 @@
                 <p style="font-size: 12px; color: #666; margin-top: 5px;">This text will be automatically appended to the end of each generated prompt.</p>
             </div>
 
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="enableEnhancement" style="width: auto; margin: 0;">
+                    <span>🤖 AI Prompt Enhancement (Trained on Guide Docs)</span>
+                </label>
+                <p style="font-size: 12px; color: #666; margin-top: 5px; margin-left: 30px;">Automatically injects knowledge from training docs to enhance prompts with body shapes, realism, camera angles, luxury aesthetics, and dating appeal.</p>
+                
+                <div id="enhancementOptions" style="display: none; margin-top: 15px; margin-left: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                            <input type="checkbox" id="enhanceBodyShape" checked style="width: auto; margin: 0;">
+                            <span>Body Shapes</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                            <input type="checkbox" id="enhanceRealism" checked style="width: auto; margin: 0;">
+                            <span>Ultra-Realism</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                            <input type="checkbox" id="enhanceCameraAngle" checked style="width: auto; margin: 0;">
+                            <span>Camera Angles</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                            <input type="checkbox" id="enhanceLuxury" style="width: auto; margin: 0;">
+                            <span>Luxury Aesthetic</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                            <input type="checkbox" id="enhanceDating" style="width: auto; margin: 0;">
+                            <span>Dating Appeal</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <div id="promptList" class="prompt-list" style="display: none;"></div>
 
             <div style="display: flex; gap: 10px; margin-top: 15px;">
@@ -830,6 +863,48 @@
             elements.apiKey.closest('.form-group').style.display = 'none';
         }
 
+        // Load enhancement settings
+        const savedEnhancementEnabled = localStorage.getItem('batch-generator-enhancement-enabled') === 'true';
+        const savedEnhancementOptions = JSON.parse(localStorage.getItem('batch-generator-enhancement-options') || '{"bodyShape":true,"realism":true,"cameraAngle":true,"luxury":false,"dating":false}');
+        
+        const enableEnhancementCheckbox = document.getElementById('enableEnhancement');
+        const enhancementOptionsDiv = document.getElementById('enhancementOptions');
+        
+        if (enableEnhancementCheckbox) {
+            enableEnhancementCheckbox.checked = savedEnhancementEnabled;
+            enhancementOptionsDiv.style.display = savedEnhancementEnabled ? 'block' : 'none';
+            
+            // Set individual option checkboxes
+            document.getElementById('enhanceBodyShape').checked = savedEnhancementOptions.bodyShape !== false;
+            document.getElementById('enhanceRealism').checked = savedEnhancementOptions.realism !== false;
+            document.getElementById('enhanceCameraAngle').checked = savedEnhancementOptions.cameraAngle !== false;
+            document.getElementById('enhanceLuxury').checked = savedEnhancementOptions.luxury === true;
+            document.getElementById('enhanceDating').checked = savedEnhancementOptions.dating === true;
+            
+            // Toggle enhancement options visibility
+            enableEnhancementCheckbox.addEventListener('change', () => {
+                enhancementOptionsDiv.style.display = enableEnhancementCheckbox.checked ? 'block' : 'none';
+                localStorage.setItem('batch-generator-enhancement-enabled', enableEnhancementCheckbox.checked);
+            });
+            
+            // Save individual option changes
+            ['enhanceBodyShape', 'enhanceRealism', 'enhanceCameraAngle', 'enhanceLuxury', 'enhanceDating'].forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    checkbox.addEventListener('change', () => {
+                        const options = {
+                            bodyShape: document.getElementById('enhanceBodyShape').checked,
+                            realism: document.getElementById('enhanceRealism').checked,
+                            cameraAngle: document.getElementById('enhanceCameraAngle').checked,
+                            luxury: document.getElementById('enhanceLuxury').checked,
+                            dating: document.getElementById('enhanceDating').checked
+                        };
+                        localStorage.setItem('batch-generator-enhancement-options', JSON.stringify(options));
+                    });
+                }
+            });
+        }
+
         // Image upload handlers
         elements.fileUploadArea.addEventListener('click', () => {
             elements.imageInput.click();
@@ -916,6 +991,145 @@
 
         // Make removeImage available globally
         window.removeImage = removeImage;
+
+        // ============================================
+        // KNOWLEDGE BASE SYSTEM - Trained on Guide Docs
+        // ============================================
+        const knowledgeBase = {
+            bodyShapes: {
+                hourglass: {
+                    classic: "Bust and hips equal width. Waist dramatically narrow (25%+ smaller). Shoulders align with hips. Full, rounded bust. Pronounced S-curve waist-to-hip transition. Thighs soft with gradual taper. Buttocks naturally rounded and lifted.",
+                    top: "Upper body broader than hips. Bust exceeds hip width by 1-2 inches. Fuller bust (C+ cup). Wide shoulders with developed deltoids. Defined waist despite upper prominence. Narrow hips and sleek thighs.",
+                    bottom: "Hips exceed bust by 1-2 inches. Dramatic hip width with shelf-like projection. Full, rounded thighs. Pronounced buttocks volume and lift. Narrow shoulders and modest bust.",
+                    neat: "Subtle hourglass with refined curves. Bust and hips balanced without drama. Gentle waist taper. Flat, toned abdomen with subtle definition. Streamlined thighs."
+                },
+                triangular: {
+                    pear: "Hips substantially wider than shoulders (2+ inches). Narrow shoulders, small-moderate bust. Dramatic hip flare. Full, rounded thighs. Substantial buttocks volume.",
+                    spoon: "Extreme hip projection with 'shelf' effect. Hips up to 10 inches larger than waist. Pronounced upper hip widening. Very full thighs from hip junction. Substantial buttocks projection.",
+                    inverted: "Shoulders significantly wider than hips (3+ inches). Broad shoulder span. Narrow hips with minimal projection. Sleek, streamlined thighs. Compact athletic buttocks.",
+                    diamond: "Midsection widest point of body. Narrow shoulders and hips. Small-moderate bust. Full, rounded abdomen projects forward. Slender arms and legs."
+                },
+                straight: {
+                    rectangle: "Bust, waist, hips near-identical measurements. Minimal waist indentation. Consistent body width shoulder-to-hip. Moderate bust. Straight vertical lines.",
+                    athletic: "Rectangle proportions enhanced with visible musculature. Defined shoulders with deltoid development. Visible abdominal definition. Toned arms with bicep/tricep visibility.",
+                    banana: "Extremely straight with minimal curves. Near-identical measurements throughout. Very narrow waist without taper. Slender thighs. Minimal buttocks projection."
+                },
+                rounded: {
+                    apple: "Central torso fullest region. Generous bust. Rounded, forward-projecting abdomen. Minimal waist definition. Narrow hips relative to midsection.",
+                    oval: "Generous proportions throughout entire frame. Substantial bust. Full, rounded hips. Full thighs throughout length. Generous buttocks projection."
+                }
+            },
+            realism: {
+                skin: "Ultra-realistic skin texture with natural pores, subtle imperfections, and authentic skin tone variation. Natural skin translucency showing underlying vascular structures. Realistic skin surface with micro-details including fine lines, natural blemishes, and authentic skin grain.",
+                lighting: "Natural lighting with realistic shadows, highlights, and ambient occlusion. Soft, diffused lighting that mimics natural light sources. Realistic light falloff and shadow depth. Natural color temperature matching time of day and environment.",
+                camera: "Authentic camera characteristics including natural depth of field, realistic bokeh, and authentic lens distortion. Natural camera shake and motion blur where appropriate. Realistic sensor noise and grain matching camera type.",
+                details: "Micro-details including realistic hair texture, natural fabric wrinkles, authentic surface reflections, and realistic environmental interactions. Natural wear patterns and authentic material properties."
+            },
+            cameraAngles: {
+                eyeLevel: "Eye-level shot, straight-on perspective creating direct engaging view. Natural human perspective matching typical eye height.",
+                lowAngle: "Low-angle shot from below subject, creating powerful, commanding presence. Camera positioned below eye level looking upward.",
+                highAngle: "High-angle shot from above subject, creating more intimate or vulnerable perspective. Camera positioned above eye level looking downward.",
+                threeQuarter: "Three-quarter shot capturing subject from angle between front and side. Shows depth and dimension while maintaining facial recognition.",
+                profile: "Profile shot from side, showing subject's silhouette and side features. Emphasizes jawline and side profile.",
+                closeUp: "Close-up shot focusing on face or specific feature. Intimate perspective emphasizing details and expressions.",
+                medium: "Medium shot from waist up, balanced perspective showing upper body and face. Standard portrait framing.",
+                fullBody: "Full-body shot capturing entire figure from head to toe. Shows complete outfit and body proportions."
+            },
+            luxury: {
+                aesthetic: "Luxury aesthetic with refined elegance, sophisticated styling, and premium quality appearance. High-end fashion sensibility with attention to detail and quality materials.",
+                environment: "Upscale environments including luxury hotels, high-end boutiques, exclusive venues, and premium locations. Sophisticated settings with refined architecture and elegant decor.",
+                styling: "Premium styling with designer clothing, luxury accessories, and sophisticated fashion choices. Attention to detail in outfit coordination and high-end fashion presentation."
+            },
+            dating: {
+                appeal: "Appealing presentation optimized for dating context. Natural, approachable appearance with authentic charm and genuine appeal.",
+                confidence: "Confident, engaging presence with natural charisma. Approachable confidence that feels authentic and attractive.",
+                authenticity: "Authentic, genuine appearance that feels real and relatable. Natural expressions and authentic personality visible."
+            }
+        };
+
+        // Prompt Enhancement Function
+        function enhancePrompt(prompt, options = {}) {
+            let enhanced = prompt;
+            const {
+                injectBodyShape = false,
+                injectRealism = false,
+                injectCameraAngle = false,
+                injectLuxury = false,
+                injectDating = false
+            } = options;
+
+            // Detect body shape mentions and enhance
+            if (injectBodyShape) {
+                const bodyShapeKeywords = {
+                    hourglass: ['hourglass', 'curvy', 'curves'],
+                    pear: ['pear', 'triangle', 'wide hips'],
+                    athletic: ['athletic', 'toned', 'muscular', 'fit'],
+                    straight: ['straight', 'rectangle', 'column'],
+                    apple: ['apple', 'round', 'full']
+                };
+
+                for (const [shape, keywords] of Object.entries(bodyShapeKeywords)) {
+                    if (keywords.some(kw => prompt.toLowerCase().includes(kw))) {
+                        if (shape === 'hourglass' && !enhanced.includes('S-curve')) {
+                            enhanced += ` ${knowledgeBase.bodyShapes.hourglass.classic}`;
+                        } else if (shape === 'pear' && !enhanced.includes('hip flare')) {
+                            enhanced += ` ${knowledgeBase.bodyShapes.triangular.pear}`;
+                        } else if (shape === 'athletic' && !enhanced.includes('musculature')) {
+                            enhanced += ` ${knowledgeBase.bodyShapes.straight.athletic}`;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Inject realism enhancements
+            if (injectRealism) {
+                if (!enhanced.includes('realistic') && !enhanced.includes('ultra-realistic')) {
+                    enhanced += ` ${knowledgeBase.realism.skin} ${knowledgeBase.realism.lighting}`;
+                }
+            }
+
+            // Enhance camera angle descriptions
+            if (injectCameraAngle) {
+                const angleKeywords = {
+                    eyeLevel: ['eye-level', 'straight-on', 'direct'],
+                    lowAngle: ['low-angle', 'from below'],
+                    highAngle: ['high-angle', 'from above'],
+                    closeUp: ['close-up', 'closeup', 'close'],
+                    medium: ['medium shot', 'waist up'],
+                    fullBody: ['full body', 'full-body', 'fullbody']
+                };
+
+                for (const [angle, keywords] of Object.entries(angleKeywords)) {
+                    if (keywords.some(kw => prompt.toLowerCase().includes(kw))) {
+                        if (!enhanced.includes(knowledgeBase.cameraAngles[angle].substring(0, 50))) {
+                            enhanced += ` ${knowledgeBase.cameraAngles[angle]}`;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Inject luxury aesthetic
+            if (injectLuxury) {
+                if (!enhanced.includes('luxury') && !enhanced.includes('premium') && !enhanced.includes('high-end')) {
+                    enhanced += ` ${knowledgeBase.luxury.aesthetic} ${knowledgeBase.luxury.styling}`;
+                }
+            }
+
+            // Inject dating appeal
+            if (injectDating) {
+                if (!enhanced.includes('appealing') && !enhanced.includes('attractive')) {
+                    enhanced += ` ${knowledgeBase.dating.appeal} ${knowledgeBase.dating.authenticity}`;
+                }
+            }
+
+            return enhanced.trim();
+        }
+
+        // ============================================
+        // END KNOWLEDGE BASE SYSTEM
+        // ============================================
 
         elements.parseBtn.addEventListener('click', () => {
             let text = elements.promptsInput.value.trim();
@@ -1131,6 +1345,20 @@
             if (prompts.length === 0) {
                 alert('No valid prompts found');
                 return;
+            }
+
+            // Apply AI enhancement if enabled
+            const enableEnhancement = document.getElementById('enableEnhancement').checked;
+            if (enableEnhancement) {
+                const enhancementOptions = {
+                    injectBodyShape: document.getElementById('enhanceBodyShape').checked,
+                    injectRealism: document.getElementById('enhanceRealism').checked,
+                    injectCameraAngle: document.getElementById('enhanceCameraAngle').checked,
+                    injectLuxury: document.getElementById('enhanceLuxury').checked,
+                    injectDating: document.getElementById('enhanceDating').checked
+                };
+                
+                prompts = prompts.map(prompt => enhancePrompt(prompt, enhancementOptions));
             }
 
             state.prompts = prompts.map((prompt, index) => ({
