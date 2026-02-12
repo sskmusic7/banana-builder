@@ -684,12 +684,12 @@
 
             <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" id="enableEnhancement" style="width: auto; margin: 0;">
+                    <input type="checkbox" id="enableEnhancement" checked style="width: auto; margin: 0;">
                     <span>🤖 AI Prompt Enhancement (Trained on Guide Docs)</span>
                 </label>
-                <p style="font-size: 12px; color: #666; margin-top: 5px; margin-left: 30px;">Automatically injects knowledge from training docs to enhance prompts with body shapes, realism, camera angles, luxury aesthetics, and dating appeal.</p>
+                <p style="font-size: 12px; color: #666; margin-top: 5px; margin-left: 30px;">Select which enhancements to apply to your prompts:</p>
                 
-                <div id="enhancementOptions" style="display: none; margin-top: 15px; margin-left: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <div id="enhancementOptions" style="display: block; margin-top: 15px; margin-left: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
                         <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
                             <input type="checkbox" id="enhanceBodyShape" checked style="width: auto; margin: 0;">
@@ -954,7 +954,9 @@
         }
 
         // Load enhancement settings
-        const savedEnhancementEnabled = localStorage.getItem('batch-generator-enhancement-enabled') === 'true';
+        const savedEnhancementEnabled = localStorage.getItem('batch-generator-enhancement-enabled');
+        // Default to true if not set, otherwise use saved value
+        const enhancementEnabled = savedEnhancementEnabled === null ? true : savedEnhancementEnabled === 'true';
         const savedEnhancementOptions = JSON.parse(localStorage.getItem('batch-generator-enhancement-options') || '{"bodyShape":true,"realism":true,"cameraAngle":true,"luxury":false,"dating":false}');
         const savedPreventAIStare = localStorage.getItem('batch-generator-prevent-ai-stare') !== 'false'; // Default to true
         
@@ -963,8 +965,8 @@
         const preventAIStareCheckbox = document.getElementById('preventAIStare');
         
         if (enableEnhancementCheckbox) {
-            enableEnhancementCheckbox.checked = savedEnhancementEnabled;
-            enhancementOptionsDiv.style.display = savedEnhancementEnabled ? 'block' : 'none';
+            enableEnhancementCheckbox.checked = enhancementEnabled;
+            enhancementOptionsDiv.style.display = 'block'; // Always show checkboxes so users can select individually
             
             // Set individual option checkboxes
             document.getElementById('enhanceBodyShape').checked = savedEnhancementOptions.bodyShape !== false;
@@ -1942,9 +1944,6 @@ STRICT NEGATIVES (AVOID):
                 }
             };
 
-            // Check if using shared API key
-            const useSharedKey = document.getElementById('useSharedGeminiKey')?.checked && sharedKeysAvailable.gemini;
-            
             let response;
             if (useSharedKey) {
                 // Use Netlify function proxy to keep API key secure
