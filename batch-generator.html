@@ -704,7 +704,14 @@
                             <input type="checkbox" id="preventAIStare" checked style="width: auto; margin: 0;">
                             <span>🚫 Prevent AI Stare (Natural Candid)</span>
                         </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                            <input type="checkbox" id="enableRealismEnhancement" checked style="width: auto; margin: 0;">
+                            <span>🎨 Auto Realism Enhancement (Skin/Lighting)</span>
+                        </label>
                     </div>
+                    <p style="font-size: 11px; color: #666; margin-top: 10px; margin-left: 0;">
+                        <strong>Note:</strong> "Auto Realism Enhancement" adds detailed skin, lighting, and color instructions to every prompt. If you're experiencing weird coloring or unwanted elements, try disabling this.
+                    </p>
                 </div>
             </div>
 
@@ -892,6 +899,16 @@
                 preventAIStareCheckbox.checked = savedPreventAIStare;
                 preventAIStareCheckbox.addEventListener('change', () => {
                     localStorage.setItem('batch-generator-prevent-ai-stare', preventAIStareCheckbox.checked);
+                });
+            }
+            
+            // Set realism enhancement checkbox (default to true)
+            const enableRealismEnhancementCheckbox = document.getElementById('enableRealismEnhancement');
+            const savedRealismEnhancement = localStorage.getItem('batch-generator-realism-enhancement') !== 'false'; // Default to true
+            if (enableRealismEnhancementCheckbox) {
+                enableRealismEnhancementCheckbox.checked = savedRealismEnhancement;
+                enableRealismEnhancementCheckbox.addEventListener('change', () => {
+                    localStorage.setItem('batch-generator-realism-enhancement', enableRealismEnhancementCheckbox.checked);
                 });
             }
             
@@ -1419,18 +1436,18 @@
                 
                 // If split method didn't work, try regex fallback
                 if (prompts.length === 0) {
-                    const numberedMatches = text.match(/\d+\.\s+[^\n]*(?:\n(?!\d+\.\s)[^\n]*)*/g);
-                    if (numberedMatches && numberedMatches.length > 0) {
-                        prompts = numberedMatches.map(match => {
-                            const fullPrompt = match
+            const numberedMatches = text.match(/\d+\.\s+[^\n]*(?:\n(?!\d+\.\s)[^\n]*)*/g);
+            if (numberedMatches && numberedMatches.length > 0) {
+                prompts = numberedMatches.map(match => {
+                    const fullPrompt = match
                                 .replace(/^\d+\.\s+/, '')
                                 .replace(/\n+/g, ' ')
                                 .replace(/\s+/g, ' ')
-                                .trim();
-                            return fullPrompt;
-                        }).filter(p => {
-                            return p.length > 0 && !p.match(/^---\s*$/);
-                        });
+                        .trim();
+                    return fullPrompt;
+                }).filter(p => {
+                    return p.length > 0 && !p.match(/^---\s*$/);
+                });
                     }
                 }
             }
@@ -1744,12 +1761,11 @@ SKIN REALISM (FOCUS):
 - Natural imperfections must be preserved (freckles, moles, fine lines, texture variations)
 
 COLOR & LIGHT (IMPORTANT):
-- Real daylight with slight warmth, NOT neutral grey or cool tones
-- Natural contrast (NOT flat, NOT cinematic, NOT over-dramatic)
+- Real daylight with slight warmth, natural color temperature
+- Natural contrast appropriate to the scene
 - Accurate white balance - colors must be true-to-life
 - True-to-life colors: skin tones rich and dimensional, fabrics clearly defined, objects have natural color depth
-- NO faded colors, NO dusty tones, NO pastel palette, NO washed-out aesthetic
-- Colors must be vibrant but natural, not oversaturated
+- Colors must be natural and authentic to the scene, not artificially enhanced or muted
 
 CAMERA BEHAVIOR:
 - Phone-camera realism: slight edge softness, natural focus falloff
@@ -1788,8 +1804,12 @@ STRICT NEGATIVES (AVOID):
             // Build the prompt text
             let promptText = prompt;
             
-            // Add ultra-realistic skin and lighting enhancement
+            // Add ultra-realistic skin and lighting enhancement (optional, controlled by toggle)
+            const realismCheckbox = document.getElementById('enableRealismEnhancement');
+            const enableRealismEnhancement = !realismCheckbox || realismCheckbox.checked; // Default to true if checkbox doesn't exist
+            if (enableRealismEnhancement) {
             promptText += getRealisticEnhancement();
+            }
             
             // If reference images are provided, add instructions to use them for likeness only
             if (uploadedImages && uploadedImages.length > 0) {
@@ -1866,8 +1886,12 @@ STRICT NEGATIVES (AVOID):
             // Build prompt text
             let promptText = prompt;
             
-            // Add ultra-realistic skin and lighting enhancement
-            promptText += getRealisticEnhancement();
+            // Add ultra-realistic skin and lighting enhancement (optional, controlled by toggle)
+            const realismCheckbox = document.getElementById('enableRealismEnhancement');
+            const enableRealismEnhancement = !realismCheckbox || realismCheckbox.checked; // Default to true if checkbox doesn't exist
+            if (enableRealismEnhancement) {
+                promptText += getRealisticEnhancement();
+            }
             
             if (uploadedImages && uploadedImages.length > 0) {
                 promptText += ` [Reference images provided for style/character guidance]`;
@@ -2303,10 +2327,10 @@ STRICT NEGATIVES (AVOID):
             const MAX_HISTORY_ITEMS = 15;
             
             // Always keep history trimmed to max items
-            if (state.history.length > MAX_HISTORY_ITEMS) {
+                if (state.history.length > MAX_HISTORY_ITEMS) {
                 // Remove oldest items (keep most recent)
                 state.history = state.history.slice(-MAX_HISTORY_ITEMS);
-            }
+                }
             
             try {
                 localStorage.setItem('batch-generator-history', JSON.stringify(state.history));
@@ -2317,8 +2341,8 @@ STRICT NEGATIVES (AVOID):
                     for (let limit of [10, 5, 3, 0]) {
                         if (state.history.length > limit) {
                             state.history = state.history.slice(-limit);
-                            try {
-                                localStorage.setItem('batch-generator-history', JSON.stringify(state.history));
+                        try {
+                            localStorage.setItem('batch-generator-history', JSON.stringify(state.history));
                                 reduced = true;
                                 break;
                             } catch (e) {
@@ -2331,7 +2355,7 @@ STRICT NEGATIVES (AVOID):
                         // Last resort: clear history
                         state.history = [];
                         try {
-                            localStorage.removeItem('batch-generator-history');
+                        localStorage.removeItem('batch-generator-history');
                         } catch (e) {
                             // Ignore errors when clearing
                         }
