@@ -1,0 +1,39 @@
+{
+  "networkRequests": [
+    {
+      "url": "https://driprip.netlify.app/batch-generator",
+      "method": "GET",
+      "timestamp": 1770934518071
+    },
+    {
+      "url": "https://driprip.netlify.app/.netlify/functions/check-shared-key",
+      "method": "GET",
+      "timestamp": 1770934518759
+    }
+  ],
+  "networkResponses": [
+    {
+      "url": "https://driprip.netlify.app/batch-generator",
+      "status": 200,
+      "text": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>🍌 Batch Prompt Generator - AI Image Generator</title>\n    <!-- Libraries for PDF and ZIP export -->\n    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js\"></script>\n    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js\"></script>\n    <!-- Library for image metadata (EXIF) -->\n    <scrip",
+      "timestamp": 1770934518762
+    },
+    {
+      "url": "https://driprip.netlify.app/.netlify/functions/check-shared-key",
+      "status": 200,
+      "text": "{\"gemini\":true,\"seedream\":false}",
+      "timestamp": 1770934518939
+    }
+  ],
+  "consoleLogs": [
+    {
+      "type": "log",
+      "text": "Shared keys available: {gemini: true, seedream: false}",
+      "timestamp": 1770934518938
+    }
+  ],
+  "consoleErrors": [],
+  "successCount": 0,
+  "errorCount": 0,
+  "processingCount": 0
+}

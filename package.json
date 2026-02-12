@@ -1,0 +1,23 @@
+{
+  "name": "banana-builder-site",
+  "version": "1.0.0",
+  "description": "A collection of AI-powered tools for image generation and analysis.",
+  "main": "test-batch-generator.spec.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sskmusic7/banana-builder.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sskmusic7/banana-builder/issues"
+  },
+  "homepage": "https://github.com/sskmusic7/banana-builder#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}

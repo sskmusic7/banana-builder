@@ -1728,17 +1728,25 @@
         async function startGeneration() {
             const selectedModel = elements.modelSelect.value;
             
+            // Check if using shared API key
+            const useSharedKey = selectedModel !== 'seedream-4' && 
+                document.getElementById('useSharedGeminiKey')?.checked && 
+                sharedKeysAvailable.gemini;
+            
             if (selectedModel === 'seedream-4') {
                 if (!elements.seedreamApiKey.value.trim()) {
                     alert('Please enter your Freepik API key');
                     return;
                 }
             } else {
-                if (!elements.apiKey.value.trim()) {
-                    alert('Please enter your Gemini API key');
+                // Only require API key if NOT using shared key
+                if (!useSharedKey && !elements.apiKey.value.trim()) {
+                    alert('Please enter your Gemini API key or enable shared API key');
                     return;
                 }
             }
+            
+            console.log('Starting generation - Using shared key:', useSharedKey);
 
             if (state.prompts.length === 0) {
                 alert('Please parse prompts first');
