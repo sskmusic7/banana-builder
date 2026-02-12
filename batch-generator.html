@@ -850,6 +850,7 @@
                 const response = await fetch('/.netlify/functions/check-shared-key');
                 if (response.ok) {
                     sharedKeysAvailable = await response.json();
+                    console.log('Shared keys available:', sharedKeysAvailable);
                     const statusDiv = document.getElementById('sharedKeyStatus');
                     const statusText = document.getElementById('sharedKeyStatusText');
                     const useSharedCheckbox = document.getElementById('useSharedGeminiKey');
@@ -860,6 +861,12 @@
                             statusText.textContent = '✓ Shared Gemini API key available';
                             statusText.style.color = '#28a745';
                             useSharedCheckbox.disabled = false;
+                            // Auto-check if user hasn't set a preference
+                            const savedPreference = localStorage.getItem('batch-generator-use-shared-key');
+                            if (savedPreference === null) {
+                                useSharedCheckbox.checked = true;
+                                localStorage.setItem('batch-generator-use-shared-key', 'true');
+                            }
                         } else {
                             statusDiv.style.display = 'block';
                             statusText.textContent = '✗ Shared API key not configured';
@@ -868,6 +875,8 @@
                             useSharedCheckbox.checked = false;
                         }
                     }
+                } else {
+                    console.error('Failed to check shared keys:', response.status, response.statusText);
                 }
             } catch (error) {
                 console.error('Error checking shared keys:', error);
@@ -1887,6 +1896,7 @@ STRICT NEGATIVES (AVOID):
             // Check if using shared API key (apiKey can be empty/placeholder in this case)
             const useSharedKey = document.getElementById('useSharedGeminiKey')?.checked && sharedKeysAvailable.gemini;
             if (useSharedKey) {
+                console.log('Using shared API key via proxy');
                 // Use placeholder - actual key is in Netlify env vars
                 apiKey = 'SHARED_KEY';
             }
@@ -1946,6 +1956,7 @@ STRICT NEGATIVES (AVOID):
 
             let response;
             if (useSharedKey) {
+                console.log('Using shared API key via proxy');
                 // Use Netlify function proxy to keep API key secure
                 response = await fetch('/.netlify/functions/gemini-proxy', {
                     method: 'POST',
