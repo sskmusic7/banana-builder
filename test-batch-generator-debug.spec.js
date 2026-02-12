@@ -93,13 +93,29 @@ test('Batch Generator - Debug Shared API Key', async ({ page }) => {
     throw new Error('Generate button not found');
   }
   
+  // Set up alert handler
+  let alertMessage = null;
+  page.on('dialog', async dialog => {
+    alertMessage = dialog.message();
+    console.log(`[ALERT] ${alertMessage}`);
+    await dialog.accept();
+  });
+  
   // Click generate
   console.log('[TEST] Clicking Generate button...');
   await generateBtn.first().click();
   
-  // Wait and monitor
+  // Wait a moment for any alerts
+  await page.waitForTimeout(1000);
+  
+  if (alertMessage) {
+    console.log(`[ERROR] Alert shown: ${alertMessage}`);
+    throw new Error(`Generation blocked by alert: ${alertMessage}`);
+  }
+  
+  // Wait and monitor for API calls
   console.log('[TEST] Waiting for API calls...');
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(10000); // Wait longer for API call
   
   // Check for API requests
   console.log(`[TEST] Network requests: ${networkRequests.length}`);
