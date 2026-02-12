@@ -15,6 +15,13 @@
   to = "/drip-extractor/index.html"
   status = 200
 
+# Exclude Netlify functions from redirects
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

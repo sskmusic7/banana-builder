@@ -1970,11 +1970,27 @@ STRICT NEGATIVES (AVOID):
             }
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`);
+                const errorText = await response.text();
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    errorData = { error: { message: errorText } };
+                }
+                console.error('API Error:', errorData);
+                throw new Error(errorData.error?.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
-            const data = await response.json();
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error('Failed to parse response:', responseText);
+                throw new Error('Invalid JSON response from API');
+            }
+            
+            console.log('API Response:', data);
 
             // Extract image from response
             const candidate = data.candidates?.[0];

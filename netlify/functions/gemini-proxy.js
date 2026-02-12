@@ -77,13 +77,17 @@ exports.handler = async (event, context) => {
     };
     
   } catch (error) {
+    console.error('Gemini proxy error:', error);
     return {
       statusCode: 500,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ 
+        error: error.message,
+        details: error.stack 
+      })
     };
   }
 };
