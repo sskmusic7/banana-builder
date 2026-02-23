@@ -1793,13 +1793,52 @@
                         finalPrompt = `${finalPrompt} ${extraGuidance}`;
                     }
                     
-                    const imageUrl = await generateImage(
+                    let imageUrl = await generateImage(
                         apiKey,
                         finalPrompt,
                         parseInt(elements.width.value),
                         parseInt(elements.height.value),
                         state.uploadedImages
                     );
+
+                    // Add metadata to the image immediately after generation
+                    try {
+                        const response = await fetch(imageUrl);
+                        const blob = await response.blob();
+                        
+                        // Check actual file signature to determine type (more reliable than blob.type)
+                        const arrayBuffer = await blob.slice(0, 8).arrayBuffer();
+                        const header = new Uint8Array(arrayBuffer);
+                        const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
+                        const isJPEG = header[0] === 0xFF && header[1] === 0xD8;
+                        
+                        let finalBlob = blob;
+                        // Determine image type and add appropriate metadata
+                        if (isPNG || blob.type === 'image/png' || imageUrl.includes('.png')) {
+                            console.log('Adding PNG metadata to image...');
+                            finalBlob = await addPNGMetadata(blob, finalPrompt);
+                            console.log('PNG metadata added successfully');
+                        } else if (isJPEG || blob.type === 'image/jpeg' || blob.type === 'image/jpg' || imageUrl.includes('.jpg') || imageUrl.includes('.jpeg')) {
+                            console.log('Adding JPEG metadata to image...');
+                            finalBlob = await addJPEGMetadata(blob, finalPrompt);
+                            console.log('JPEG metadata added successfully');
+                        } else {
+                            // Default to PNG metadata for unknown types (Gemini usually returns PNG)
+                            console.log('Unknown image type, defaulting to PNG metadata...');
+                            finalBlob = await addPNGMetadata(blob, finalPrompt);
+                            console.log('PNG metadata added successfully');
+                        }
+                        
+                        // Create new blob URL with metadata
+                        const oldUrl = imageUrl;
+                        imageUrl = URL.createObjectURL(finalBlob);
+                        URL.revokeObjectURL(oldUrl); // Clean up old blob URL
+                        console.log('Metadata-enhanced image URL created');
+                    } catch (metadataError) {
+                        console.error('Failed to add metadata to image:', metadataError);
+                        console.error('Error details:', metadataError.stack);
+                        // Continue with original imageUrl if metadata addition fails
+                    }
 
                     prompt.status = 'success';
                     prompt.result = imageUrl;
@@ -2236,14 +2275,16 @@ STRICT NEGATIVES (AVOID):
 
         // Add PNG text chunk (tEXt) with prompt metadata
         async function addPNGMetadata(imageBlob, prompt) {
-            const arrayBuffer = await imageBlob.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
-            
-            // PNG signature: 89 50 4E 47 0D 0A 1A 0A
-            if (uint8Array[0] !== 0x89 || uint8Array[1] !== 0x50 || 
-                uint8Array[2] !== 0x4E || uint8Array[3] !== 0x47) {
-                return imageBlob; // Not a PNG, return as-is
-            }
+            try {
+                const arrayBuffer = await imageBlob.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+                if (uint8Array[0] !== 0x89 || uint8Array[1] !== 0x50 || 
+                    uint8Array[2] !== 0x4E || uint8Array[3] !== 0x47) {
+                    console.warn('Not a valid PNG file, cannot add metadata');
+                    return imageBlob; // Not a PNG, return as-is
+                }
             
             // Find IEND chunk (last chunk)
             let iendPos = -1;
@@ -2307,6 +2348,11 @@ STRICT NEGATIVES (AVOID):
             newArray.set(uint8Array.slice(iendPos), pos);
             
             return new Blob([newArray], { type: 'image/png' });
+            } catch (error) {
+                console.error('Error adding PNG metadata:', error);
+                console.error('Error details:', error.stack);
+                return imageBlob; // Return original if metadata addition fails
+            }
         }
         
         // Add JPEG EXIF metadata with prompt
@@ -2327,11 +2373,15 @@ STRICT NEGATIVES (AVOID):
                 }
                 
                 // Add prompt to UserComment in EXIF
-                const userComment = JSON.stringify({ prompt: prompt });
+                // UserComment format per EXIF spec: [8-byte encoding] + [comment]
+                // For Unicode/UTF-8: "UNICODE\0\0\0" + actual comment
+                const commentData = JSON.stringify({ prompt: prompt });
+                const userComment = "UNICODE\0\0\0" + commentData;
                 exifObj.Exif[piexif.ExifIFD.UserComment] = userComment;
                 
-                // Also add to ImageDescription for easier access
-                exifObj["0th"][piexif.ImageIFD.ImageDescription] = `AI Generated Image - Prompt: ${prompt.substring(0, 200)}`;
+                // Also add to ImageDescription for easier access (limited to 200 chars for compatibility)
+                const shortPrompt = prompt.length > 200 ? prompt.substring(0, 197) + '...' : prompt;
+                exifObj["0th"][piexif.ImageIFD.ImageDescription] = `AI Generated Image - Prompt: ${shortPrompt}`;
                 
                 // Insert EXIF data
                 const exifStr = piexif.dump(exifObj);

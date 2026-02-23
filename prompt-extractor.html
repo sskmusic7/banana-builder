@@ -474,16 +474,28 @@
                 
                 // Try UserComment first (JSON format)
                 if (exifObj.Exif && exifObj.Exif[piexif.ExifIFD.UserComment]) {
-                    const userComment = exifObj.Exif[piexif.ExifIFD.UserComment];
+                    let userComment = exifObj.Exif[piexif.ExifIFD.UserComment];
+                    
+                    // Strip EXIF encoding prefix if present (8 bytes: "UNICODE\0\0\0" or similar)
+                    if (typeof userComment === 'string' && userComment.length > 8) {
+                        // Check for common encoding prefixes
+                        if (userComment.startsWith('UNICODE')) {
+                            userComment = userComment.substring(8); // Remove "UNICODE\0\0\0"
+                        } else if (userComment.charCodeAt(0) === 0 || userComment.charCodeAt(7) === 0) {
+                            // Generic 8-byte encoding prefix, strip it
+                            userComment = userComment.substring(8);
+                        }
+                    }
+                    
                     try {
                         const parsed = JSON.parse(userComment);
                         if (parsed.prompt) {
                             return parsed.prompt;
                         }
                     } catch (e) {
-                        // Not JSON, try as plain text
+                        // Not JSON, try as plain text (after stripping encoding)
                         if (typeof userComment === 'string' && userComment.length > 0) {
-                            return userComment;
+                            return userComment.trim();
                         }
                     }
                 }
