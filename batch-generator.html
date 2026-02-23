@@ -2069,7 +2069,12 @@ STRICT NEGATIVES (AVOID):
                 promptText = promptText + imageInstruction;
             }
             
-            promptText += `\n\nOutput dimensions: ${width}x${height}`;
+            // Add explicit dimension instructions at the end
+            promptText += `\n\nCRITICAL OUTPUT REQUIREMENTS:
+- Image dimensions MUST be exactly ${width} pixels wide by ${height} pixels tall
+- Aspect ratio MUST be ${width}:${height}
+- ${width > height ? 'LANDSCAPE orientation (wider than tall)' : width < height ? 'PORTRAIT orientation (taller than wide)' : 'SQUARE format (equal width and height)'}
+- Do NOT generate square images unless dimensions are ${width}x${height}`;
 
             const contents = [{
                 role: "user",
