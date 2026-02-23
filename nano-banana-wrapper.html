@@ -709,6 +709,15 @@
                     <input type="password" id="apiKey" placeholder="Enter your Google AI API key" autocomplete="off" />
                     <button type="button" class="toggle-visibility" id="toggleApiKey">👁️</button>
                 </div>
+                <div style="margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="useSharedGeminiKey" style="width: auto; margin: 0;">
+                        <span>Use Shared API Key (Beta Testing)</span>
+                    </label>
+                    <div id="sharedKeyStatus" style="display: none; margin-top: 5px; font-size: 0.85em;">
+                        <span id="sharedKeyStatusText"></span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -840,6 +849,51 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
         // 3. Optionally adjust the daily rate limit (default: 100)
         // 4. That's it! You're ready to generate images.
         // ============================================
+
+        // Shared API Key Management
+        let sharedKeysAvailable = { gemini: false };
+        async function checkSharedKeys() {
+            try {
+                const response = await fetch('/.netlify/functions/check-shared-key');
+                if (response.ok) {
+                    sharedKeysAvailable = await response.json();
+                    console.log('Shared keys available:', sharedKeysAvailable);
+                    const statusDiv = document.getElementById('sharedKeyStatus');
+                    const statusText = document.getElementById('sharedKeyStatusText');
+                    const useSharedCheckbox = document.getElementById('useSharedGeminiKey');
+                    
+                    if (statusDiv && statusText && useSharedCheckbox) {
+                        if (sharedKeysAvailable.gemini) {
+                            statusDiv.style.display = 'block';
+                            statusText.textContent = '✓ Shared Gemini API key available';
+                            statusText.style.color = '#28a745';
+                            useSharedCheckbox.disabled = false;
+                            // Auto-check if user hasn't set a preference
+                            const savedPreference = localStorage.getItem('nano-banana-use-shared-key');
+                            if (savedPreference === null) {
+                                useSharedCheckbox.checked = true;
+                                localStorage.setItem('nano-banana-use-shared-key', 'true');
+                            } else {
+                                useSharedCheckbox.checked = savedPreference === 'true';
+                            }
+                        } else {
+                            statusDiv.style.display = 'block';
+                            statusText.textContent = '✗ Shared API key not configured';
+                            statusText.style.color = '#dc3545';
+                            useSharedCheckbox.disabled = true;
+                            useSharedCheckbox.checked = false;
+                        }
+                    }
+                } else {
+                    console.error('Failed to check shared keys:', response.status, response.statusText);
+                }
+            } catch (error) {
+                console.error('Error checking shared keys:', error);
+            }
+        }
+        
+        // Check shared keys on page load
+        checkSharedKeys();
 
         // DOM Elements
         const elements = {
@@ -1337,6 +1391,28 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
             localStorage.setItem('nanoBananaApiKey', elements.apiKey.value);
         });
 
+        // Shared key checkbox event listener
+        const useSharedGeminiKeyCheckbox = document.getElementById('useSharedGeminiKey');
+        if (useSharedGeminiKeyCheckbox) {
+            useSharedGeminiKeyCheckbox.addEventListener('change', () => {
+                localStorage.setItem('nano-banana-use-shared-key', useSharedGeminiKeyCheckbox.checked);
+                // Hide/show API key input based on shared key selection
+                if (useSharedGeminiKeyCheckbox.checked && sharedKeysAvailable.gemini) {
+                    elements.apiKey.style.display = 'none';
+                    elements.toggleApiKey.style.display = 'none';
+                } else {
+                    elements.apiKey.style.display = '';
+                    elements.toggleApiKey.style.display = '';
+                }
+            });
+            
+            // Apply initial state
+            if (useSharedGeminiKeyCheckbox.checked && sharedKeysAvailable.gemini) {
+                elements.apiKey.style.display = 'none';
+                elements.toggleApiKey.style.display = 'none';
+            }
+        }
+
         elements.toggleApiKey.addEventListener('click', () => {
             state.apiKeyVisible = !state.apiKeyVisible;
             elements.apiKey.type = state.apiKeyVisible ? 'text' : 'password';
@@ -1500,12 +1576,13 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
         elements.regenerateBtn.addEventListener('click', handleGenerate);
 
         async function handleGenerate() {
+            const useSharedKey = document.getElementById('useSharedGeminiKey')?.checked && sharedKeysAvailable.gemini;
             const apiKey = elements.apiKey.value.trim();
             const prompt = elements.prompt.value.trim();
 
-            // Validation
-            if (!apiKey) {
-                alertManager.show('Please enter your Google AI API key', 'error');
+            // Validation - only require API key if not using shared key
+            if (!useSharedKey && !apiKey) {
+                alertManager.show('Please enter your Google AI API key or enable shared API key', 'error');
                 elements.apiKey.focus();
                 return;
             }
@@ -1532,12 +1609,14 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
             elements.loading.classList.add('active');
 
             try {
+                const useSharedKey = document.getElementById('useSharedGeminiKey')?.checked && sharedKeysAvailable.gemini;
                 const response = await generateImage(
-                    apiKey,
+                    useSharedKey ? 'SHARED_KEY' : apiKey,
                     prompt,
                     state.uploadedImageBase64,
                     state.uploadedImageMimeType,
-                    state.selectedDimensions
+                    state.selectedDimensions,
+                    useSharedKey
                 );
 
                 if (response.error) {
@@ -1595,7 +1674,7 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
             }
         }
 
-        async function generateImage(apiKey, prompt, imageBase64, imageMimeType, dimensions) {
+        async function generateImage(apiKey, prompt, imageBase64, imageMimeType, dimensions, useSharedKey = false) {
             // Use the selected model from the UI
             let modelName = state.selectedModel || 'gemini-2.5-flash-image';
             
@@ -1612,7 +1691,7 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
             console.log(`Using selected model: ${modelName}`);
             
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
-            return await tryGenerateWithModel(url, apiKey, prompt, imageBase64, imageMimeType, dimensions);
+            return await tryGenerateWithModel(url, apiKey, prompt, imageBase64, imageMimeType, dimensions, useSharedKey);
         }
 
         // Generate ultra-realistic skin, lighting, and camera realism enhancement
@@ -1663,7 +1742,7 @@ STRICT NEGATIVES (AVOID):
 - Unnatural symmetry, perfect skin, flawless appearance`;
         }
 
-        async function tryGenerateWithModel(url, apiKey, prompt, imageBase64, imageMimeType, dimensions) {
+        async function tryGenerateWithModel(url, apiKey, prompt, imageBase64, imageMimeType, dimensions, useSharedKey = false) {
             
             // Add ultra-realistic skin and lighting enhancement to prompt
             let enhancedPrompt = prompt + getRealisticEnhancement();
@@ -1697,13 +1776,37 @@ STRICT NEGATIVES (AVOID):
                 }
             };
 
-            const response = await fetch(`${url}?key=${apiKey}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
-            });
+            // Use Netlify proxy if shared key is enabled
+            let fetchUrl, fetchOptions;
+            if (useSharedKey) {
+                // Extract model name from URL
+                const modelMatch = url.match(/models\/([^:]+)/);
+                const model = modelMatch ? modelMatch[1] : 'gemini-2.5-flash-image';
+                
+                fetchUrl = '/.netlify/functions/gemini-proxy';
+                fetchOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        contents: requestBody.contents,
+                        generationConfig: requestBody.generationConfig
+                    })
+                };
+            } else {
+                fetchUrl = `${url}?key=${apiKey}`;
+                fetchOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                };
+            }
+
+            const response = await fetch(fetchUrl, fetchOptions);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
