@@ -352,6 +352,15 @@
             <div class="form-group">
                 <label>Gemini API Key *</label>
                 <input type="password" id="apiKey" placeholder="Enter your Gemini API key" />
+                <div style="margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="useSharedGeminiKey" style="width: auto; margin: 0;">
+                        <span>Use Shared API Key (Beta Testing)</span>
+                    </label>
+                    <div id="sharedKeyStatus" style="display: none; margin-top: 5px; font-size: 0.85em;">
+                        <span id="sharedKeyStatusText"></span>
+                    </div>
+                </div>
             </div>
 
             <div class="form-group">
@@ -505,6 +514,47 @@
             alert: document.getElementById('alert')
         };
 
+        // Shared API Key Management
+        let sharedKeysAvailable = { gemini: false };
+        async function checkSharedKeys() {
+            try {
+                const response = await fetch('/.netlify/functions/check-shared-key');
+                if (response.ok) {
+                    sharedKeysAvailable = await response.json();
+                    console.log('Shared keys available:', sharedKeysAvailable);
+                    const statusDiv = document.getElementById('sharedKeyStatus');
+                    const statusText = document.getElementById('sharedKeyStatusText');
+                    const useSharedCheckbox = document.getElementById('useSharedGeminiKey');
+                    
+                    if (statusDiv && statusText && useSharedCheckbox) {
+                        if (sharedKeysAvailable.gemini) {
+                            statusDiv.style.display = 'block';
+                            statusText.textContent = '✓ Shared Gemini API key available';
+                            statusText.style.color = '#28a745';
+                            useSharedCheckbox.disabled = false;
+                            const savedPreference = localStorage.getItem('first-frame-changer-use-shared-key');
+                            if (savedPreference === null) {
+                                useSharedCheckbox.checked = true;
+                                localStorage.setItem('first-frame-changer-use-shared-key', 'true');
+                            } else {
+                                useSharedCheckbox.checked = savedPreference === 'true';
+                            }
+                        } else {
+                            statusDiv.style.display = 'block';
+                            statusText.textContent = '✗ Shared API key not configured';
+                            statusText.style.color = '#dc3545';
+                            useSharedCheckbox.disabled = true;
+                            useSharedCheckbox.checked = false;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking shared keys:', error);
+            }
+        }
+        
+        checkSharedKeys();
+
         // Load saved API key
         const savedKey = localStorage.getItem('first-frame-changer-api-key');
         if (savedKey) {
@@ -514,6 +564,23 @@
         elements.apiKey.addEventListener('input', () => {
             localStorage.setItem('first-frame-changer-api-key', elements.apiKey.value);
         });
+
+        // Shared key checkbox event listener
+        const useSharedGeminiKeyCheckbox = document.getElementById('useSharedGeminiKey');
+        if (useSharedGeminiKeyCheckbox) {
+            useSharedGeminiKeyCheckbox.addEventListener('change', () => {
+                localStorage.setItem('first-frame-changer-use-shared-key', useSharedGeminiKeyCheckbox.checked);
+                if (useSharedGeminiKeyCheckbox.checked && sharedKeysAvailable.gemini) {
+                    elements.apiKey.style.display = 'none';
+                } else {
+                    elements.apiKey.style.display = '';
+                }
+            });
+            
+            if (useSharedGeminiKeyCheckbox.checked && sharedKeysAvailable.gemini) {
+                elements.apiKey.style.display = 'none';
+            }
+        }
 
         // Update checkbox labels
         [elements.keepPose, elements.keepCharacter, elements.keepOutfit, elements.keepSetting].forEach(checkbox => {
@@ -730,8 +797,9 @@ STRICT NEGATIVES (AVOID):
         }
 
         elements.generateBtn.addEventListener('click', async () => {
-            if (!elements.apiKey.value.trim()) {
-                showAlert('Please enter your Gemini API key', 'error');
+            const useSharedKey = document.getElementById('useSharedGeminiKey')?.checked && sharedKeysAvailable.gemini;
+            if (!useSharedKey && !elements.apiKey.value.trim()) {
+                showAlert('Please enter your Gemini API key or enable shared API key', 'error');
                 return;
             }
 
@@ -797,15 +865,17 @@ Output dimensions: ${parseInt(elements.width.value)}x${parseInt(elements.height.
                 // Add ultra-realistic skin and lighting enhancement
                 prompt += getRealisticEnhancement();
 
+                const useSharedKey = document.getElementById('useSharedGeminiKey')?.checked && sharedKeysAvailable.gemini;
                 const imageUrl = await generateImage(
-                    elements.apiKey.value,
+                    useSharedKey ? 'SHARED_KEY' : elements.apiKey.value,
                     prompt,
                     state.firstFrameBase64,
                     state.firstFrameMimeType,
                     state.styleBase64,
                     state.styleMimeType,
                     parseInt(elements.width.value),
-                    parseInt(elements.height.value)
+                    parseInt(elements.height.value),
+                    useSharedKey
                 );
 
                 elements.outputImage.src = imageUrl;
@@ -823,7 +893,7 @@ Output dimensions: ${parseInt(elements.width.value)}x${parseInt(elements.height.
             }
         });
 
-        async function generateImage(apiKey, prompt, firstFrameBase64, firstFrameMimeType, styleBase64, styleMimeType, width, height) {
+        async function generateImage(apiKey, prompt, firstFrameBase64, firstFrameMimeType, styleBase64, styleMimeType, width, height, useSharedKey = false) {
             const model = elements.modelSelect.value;
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
@@ -857,13 +927,33 @@ Output dimensions: ${parseInt(elements.width.value)}x${parseInt(elements.height.
                 }
             };
 
-            const response = await fetch(`${url}?key=${apiKey}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
-            });
+            // Use Netlify proxy if shared key is enabled
+            let fetchUrl, fetchOptions;
+            if (useSharedKey) {
+                fetchUrl = '/.netlify/functions/gemini-proxy';
+                fetchOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        contents: requestBody.contents,
+                        generationConfig: requestBody.generationConfig
+                    })
+                };
+            } else {
+                fetchUrl = `${url}?key=${apiKey}`;
+                fetchOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                };
+            }
+
+            const response = await fetch(fetchUrl, fetchOptions);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
