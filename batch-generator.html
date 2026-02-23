@@ -1432,8 +1432,11 @@
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.dimension-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                elements.width.value = btn.dataset.width;
-                elements.height.value = btn.dataset.height;
+                const width = btn.dataset.width;
+                const height = btn.dataset.height;
+                elements.width.value = width;
+                elements.height.value = height;
+                console.log('Dimension selected:', width, 'x', height);
             });
         });
 
@@ -2092,8 +2095,14 @@ STRICT NEGATIVES (AVOID):
                     topK: 40,
                     topP: 0.95,
                     maxOutputTokens: 8192,
+                    // Add dimensions for image generation models
+                    aspectRatio: width > height ? 'LANDSCAPE' : (width < height ? 'PORTRAIT' : 'SQUARE'),
+                    width: parseInt(width),
+                    height: parseInt(height)
                 }
             };
+            
+            console.log('Generating with dimensions:', width, 'x', height, 'aspectRatio:', requestBody.generationConfig.aspectRatio);
 
             let response;
             if (useSharedKey) {
@@ -2117,7 +2126,9 @@ STRICT NEGATIVES (AVOID):
                     body: JSON.stringify({
                         model: model,
                         contents: contents,
-                        generationConfig: requestBody.generationConfig
+                        generationConfig: requestBody.generationConfig,
+                        width: parseInt(width),
+                        height: parseInt(height)
                     })
                 });
             } else {
