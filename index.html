@@ -6,7 +6,7 @@
     <title>Banana Builder - AI Tools Collection</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800;900&family=Syne:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <style>
         :root {
             --color-primary: #141414;
@@ -87,28 +87,28 @@
             text-align: center;
         }
 
+        .playbook-logo {
+            max-width: 300px;
+            width: 100%;
+            height: auto;
+            margin: 0 auto 50px;
+            display: block;
+            opacity: 0.95;
+            filter: brightness(1.1);
+        }
+
         .hero-title {
-            font-size: clamp(48px, 8vw, 120px);
-            font-weight: 900;
+            font-family: 'Bebas Neue', 'Syne', 'Space Grotesk', 'Hanken Grotesk', sans-serif;
+            font-size: clamp(36px, 6vw, 96px);
+            font-weight: 400;
             line-height: 1.1;
             color: var(--color-white);
             margin-bottom: 30px;
-            letter-spacing: -2px;
-        }
-
-        .hero-title .highlight {
-            position: relative;
-            display: inline-block;
-        }
-
-        .hero-title .highlight::after {
-            content: '';
-            position: absolute;
-            bottom: 10px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: var(--color-white);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            text-align: center;
+            word-spacing: 6px;
+            font-style: normal;
         }
 
         .hero-subtitle {
@@ -380,8 +380,9 @@
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="hero-content">
+            <img src="/assets/playbook-logo.png" alt="Playbook MPR" class="playbook-logo" onerror="this.style.display='none'">
             <h1 class="hero-title">
-                AI Tools for <span class="highlight">Creative</span> Professionals
+                YOUR ALL IN ONE PROFESSIONAL AI IMAGE SUITE, BY CREATIVES, FOR CREATIVES
             </h1>
             <p class="hero-subtitle">
                 Powerful AI-powered tools for image generation, analysis, and manipulation. 
