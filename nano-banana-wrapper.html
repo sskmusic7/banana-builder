@@ -7,6 +7,9 @@
     <!-- Libraries for PDF and ZIP export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #667eea;
@@ -56,10 +59,13 @@
         }
 
         h1 {
+            font-family: 'Bebas Neue', 'Hanken Grotesk', sans-serif;
             color: #333;
             margin-bottom: 10px;
-            font-size: 2.5em;
-            font-weight: 700;
+            font-size: 3em;
+            font-weight: 400;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
         .subtitle {
@@ -76,11 +82,14 @@
         }
 
         .section-title {
-            font-size: 1.2em;
-            font-weight: 600;
+            font-family: 'Bebas Neue', 'Hanken Grotesk', sans-serif;
+            font-size: 1.5em;
+            font-weight: 400;
             color: #333;
             margin-bottom: 15px;
             display: flex;
+            letter-spacing: 1px;
+            text-transform: uppercase;
             align-items: center;
             gap: 8px;
         }
