@@ -4,280 +4,507 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Banana Builder - AI Tools Collection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --color-primary: #141414;
+            --color-secondary: #1F1F25;
+            --color-body: #74787C;
+            --color-heading: #ffffff;
+            --color-white: #ffffff;
+            --color-black: #000000;
+            --transition: 0.3s;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
-            color: #333;
+            font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--color-primary);
+            color: var(--color-body);
+            font-size: 16px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 60px 40px;
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* Header */
         header {
-            text-align: center;
-            margin-bottom: 50px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 0;
+            transition: all var(--transition);
         }
 
-        h1 {
-            font-size: 3.5em;
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
             font-weight: 900;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--color-white);
+            text-decoration: none;
+            letter-spacing: -0.5px;
         }
 
-        .subtitle {
-            font-size: 1.2em;
-            color: #666;
-            margin-bottom: 10px;
+        /* Hero Section */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 120px 40px 80px;
+            background: var(--color-primary);
         }
 
-        .tagline {
-            color: #999;
-            font-size: 0.95em;
+        .hero-content {
+            max-width: 1200px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: clamp(48px, 8vw, 120px);
+            font-weight: 900;
+            line-height: 1.1;
+            color: var(--color-white);
+            margin-bottom: 30px;
+            letter-spacing: -2px;
+        }
+
+        .hero-title .highlight {
+            position: relative;
+            display: inline-block;
+        }
+
+        .hero-title .highlight::after {
+            content: '';
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--color-white);
+        }
+
+        .hero-subtitle {
+            font-size: clamp(18px, 2.5vw, 24px);
+            color: var(--color-body);
+            font-weight: 400;
+            margin-bottom: 50px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        /* Tools Grid */
+        .tools-section {
+            padding: 100px 40px;
+            background: var(--color-secondary);
+            position: relative;
+        }
+
+        .section-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: clamp(36px, 5vw, 72px);
+            font-weight: 900;
+            color: var(--color-white);
+            text-align: center;
+            margin-bottom: 80px;
+            letter-spacing: -1px;
         }
 
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
         }
 
         .tool-card {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 16px;
-            padding: 30px;
-            transition: all 0.3s ease;
+            background: var(--color-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0;
+            padding: 50px 40px;
+            transition: all var(--transition);
             text-decoration: none;
             color: inherit;
             display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            transition: left 0.5s ease;
+        }
+
+        .tool-card:hover::before {
+            left: 0;
         }
 
         .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-            border-color: #667eea;
+            transform: translateY(-8px);
+            border-color: rgba(255, 255, 255, 0.3);
         }
 
         .tool-icon {
-            font-size: 3em;
-            margin-bottom: 15px;
+            font-size: 64px;
+            margin-bottom: 30px;
+            display: block;
+            filter: grayscale(100%);
+            transition: filter var(--transition);
+        }
+
+        .tool-card:hover .tool-icon {
+            filter: grayscale(0%);
         }
 
         .tool-title {
-            font-size: 1.5em;
+            font-size: 28px;
             font-weight: 700;
-            margin-bottom: 10px;
-            color: #333;
+            margin-bottom: 20px;
+            color: var(--color-white);
+            letter-spacing: -0.5px;
         }
 
         .tool-description {
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 15px;
+            color: var(--color-body);
+            line-height: 1.8;
+            margin-bottom: 25px;
+            font-size: 16px;
         }
 
         .tool-features {
             list-style: none;
-            margin-top: 15px;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .tool-features li {
-            padding: 5px 0;
-            color: #555;
-            font-size: 0.9em;
+            padding: 8px 0;
+            color: var(--color-body);
+            font-size: 14px;
+            position: relative;
+            padding-left: 25px;
         }
 
-        .tool-features li:before {
-            content: "✓ ";
-            color: #28a745;
-            font-weight: bold;
-            margin-right: 5px;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
+        .tool-features li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--color-white);
             font-weight: 600;
-            margin-top: 15px;
-            transition: transform 0.2s ease;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        .tool-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+            color: var(--color-white);
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            transition: gap 0.3s ease;
         }
 
+        .tool-card:hover .tool-link {
+            gap: 15px;
+        }
+
+        .tool-link::after {
+            content: "→";
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .tool-card:hover .tool-link::after {
+            transform: translateX(5px);
+        }
+
+        /* Footer */
         footer {
+            background: var(--color-black);
+            padding: 60px 40px;
             text-align: center;
-            margin-top: 60px;
-            padding-top: 30px;
-            border-top: 2px solid #eee;
-            color: #999;
-            font-size: 0.9em;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            color: var(--color-body);
+            font-size: 14px;
+        }
+
+        /* Grid Lines Effect */
+        .grid-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            opacity: 0.05;
+        }
+
+        .grid-line {
+            position: absolute;
+            background: var(--color-white);
+            width: 1px;
+            height: 100%;
+        }
+
+        .grid-line:nth-child(1) { left: 20%; }
+        .grid-line:nth-child(2) { left: 40%; }
+        .grid-line:nth-child(3) { left: 60%; }
+        .grid-line:nth-child(4) { left: 80%; }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tool-card {
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        .tool-card:nth-child(1) { animation-delay: 0.1s; }
+        .tool-card:nth-child(2) { animation-delay: 0.2s; }
+        .tool-card:nth-child(3) { animation-delay: 0.3s; }
+        .tool-card:nth-child(4) { animation-delay: 0.4s; }
+        .tool-card:nth-child(5) { animation-delay: 0.5s; }
+        .tool-card:nth-child(6) { animation-delay: 0.6s; }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .container {
-                padding: 30px 20px;
+            .header-container {
+                padding: 0 20px;
             }
 
-            h1 {
-                font-size: 2.5em;
+            .hero-section {
+                padding: 100px 20px 60px;
+            }
+
+            .tools-section {
+                padding: 60px 20px;
             }
 
             .tools-grid {
                 grid-template-columns: 1fr;
+                gap: 30px;
             }
+
+            .tool-card {
+                padding: 40px 30px;
+            }
+
+            .section-title {
+                margin-bottom: 50px;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🍌 Banana Builder</h1>
-            <p class="subtitle">AI Tools Collection</p>
-            <p class="tagline">Powerful AI-powered tools for image generation and analysis</p>
-        </header>
-
-        <div class="tools-grid">
-            <a href="/drip-extractor" class="tool-card">
-                <div class="tool-icon">👔</div>
-                <div class="tool-title">Drip Extractor</div>
-                <div class="tool-description">
-                    Upload fit pics and extract precise, detailed prompts for image generation. Multi-provider support with batch processing.
-                </div>
-                <ul class="tool-features">
-                    <li>Multi-provider AI support (Claude, Gemini, OpenAI, Ollama)</li>
-                    <li>Batch image processing</li>
-                    <li>Raw iPhone aesthetic prompts</li>
-                    <li>JSON export functionality</li>
-                </ul>
-                <span class="btn">Open Drip Extractor →</span>
-            </a>
-
-            <a href="/nano-banana-remix.html" class="tool-card">
-                <div class="tool-icon">🎨</div>
-                <div class="tool-title">Nano Banana Remix</div>
-                <div class="tool-description">
-                    Superimpose clothing onto subjects. Upload a person and clothing item, get a remixed image with the clothing naturally fitted.
-                </div>
-                <ul class="tool-features">
-                    <li>Two-image input (subject + clothing)</li>
-                    <li>Natural clothing superimposition</li>
-                    <li>Multiple dimension options</li>
-                    <li>Rate limit tracking</li>
-                </ul>
-                <span class="btn">Open Remix Tool →</span>
-            </a>
-
-            <a href="/nano-banana-wrapper.html" class="tool-card">
-                <div class="tool-icon">✨</div>
-                <div class="tool-title">Nano Banana Wrapper</div>
-                <div class="tool-description">
-                    Text + Image to Image generator. Create images from text prompts or edit existing images with AI.
-                </div>
-                <ul class="tool-features">
-                    <li>Text-to-image generation</li>
-                    <li>Image-to-image editing</li>
-                    <li>Gemini 2.5 Flash Image support</li>
-                    <li>Custom dimension settings</li>
-                </ul>
-                <span class="btn">Open Wrapper Tool →</span>
-            </a>
-
-            <a href="/batch-generator.html" class="tool-card">
-                <div class="tool-icon">⚡</div>
-                <div class="tool-title">Batch Prompt Generator</div>
-                <div class="tool-description">
-                    Process multiple prompts automatically. Generate images one after another with progress tracking and batch download.
-                </div>
-                <ul class="tool-features">
-                    <li>Batch prompt processing</li>
-                    <li>Automatic sequential generation</li>
-                    <li>Progress tracking & statistics</li>
-                    <li>Batch download all images</li>
-                </ul>
-                <span class="btn">Open Batch Generator →</span>
-            </a>
-
-            <a href="/first-frame-changer.html" class="tool-card">
-                <div class="tool-icon">🎬</div>
-                <div class="tool-title">First Frame Changer</div>
-                <div class="tool-description">
-                    Transform video first frames with style reference images. Perfect for motion video generation workflows.
-                </div>
-                <ul class="tool-features">
-                    <li>Video or image first frame input</li>
-                    <li>Style reference transformation</li>
-                    <li>Selective preservation (character/outfit/setting)</li>
-                    <li>Custom prompt guidance</li>
-                </ul>
-                <span class="btn">Open First Frame Changer →</span>
-            </a>
-
-            <a href="/prompt-extractor.html" class="tool-card">
-                <div class="tool-icon">📝</div>
-                <div class="tool-title">Prompt Metadata Extractor</div>
-                <div class="tool-description">
-                    Extract prompts embedded in image metadata. Perfect for batch processing and manuscript creation from generated images.
-                </div>
-                <ul class="tool-features">
-                    <li>PNG text chunk extraction</li>
-                    <li>JPEG EXIF metadata reading</li>
-                    <li>Batch image processing</li>
-                    <li>Export all prompts to TXT</li>
-                </ul>
-                <span class="btn">Open Prompt Extractor →</span>
-            </a>
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <a href="/" class="logo">🍌 Banana Builder</a>
         </div>
+    </header>
 
-        <footer>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                AI Tools for <span class="highlight">Creative</span> Professionals
+            </h1>
+            <p class="hero-subtitle">
+                Powerful AI-powered tools for image generation, analysis, and manipulation. 
+                Everything you need to create stunning visuals with artificial intelligence.
+            </p>
+        </div>
+    </section>
+
+    <!-- Tools Section -->
+    <section class="tools-section">
+        <div class="grid-lines">
+            <div class="grid-line"></div>
+            <div class="grid-line"></div>
+            <div class="grid-line"></div>
+            <div class="grid-line"></div>
+        </div>
+        <div class="section-container">
+            <h2 class="section-title">Our Tools</h2>
+            <div class="tools-grid">
+                <a href="/drip-extractor" class="tool-card">
+                    <span class="tool-icon">👔</span>
+                    <div class="tool-title">Drip Extractor</div>
+                    <div class="tool-description">
+                        Upload fit pics and extract precise, detailed prompts for image generation. 
+                        Multi-provider support with batch processing capabilities.
+                    </div>
+                    <ul class="tool-features">
+                        <li>Multi-provider AI support (Claude, Gemini, OpenAI, Ollama)</li>
+                        <li>Batch image processing</li>
+                        <li>Raw iPhone aesthetic prompts</li>
+                        <li>JSON export functionality</li>
+                    </ul>
+                    <span class="tool-link">Explore Tool</span>
+                </a>
+
+                <a href="/nano-banana-remix.html" class="tool-card">
+                    <span class="tool-icon">🎨</span>
+                    <div class="tool-title">Nano Banana Remix</div>
+                    <div class="tool-description">
+                        Superimpose clothing onto subjects. Upload a person and clothing item, 
+                        get a remixed image with the clothing naturally fitted.
+                    </div>
+                    <ul class="tool-features">
+                        <li>Two-image input (subject + clothing)</li>
+                        <li>Natural clothing superimposition</li>
+                        <li>Multiple dimension options</li>
+                        <li>Rate limit tracking</li>
+                    </ul>
+                    <span class="tool-link">Explore Tool</span>
+                </a>
+
+                <a href="/nano-banana-wrapper.html" class="tool-card">
+                    <span class="tool-icon">✨</span>
+                    <div class="tool-title">Nano Banana Wrapper</div>
+                    <div class="tool-description">
+                        Text + Image to Image generator. Create images from text prompts 
+                        or edit existing images with AI-powered transformations.
+                    </div>
+                    <ul class="tool-features">
+                        <li>Text-to-image generation</li>
+                        <li>Image-to-image editing</li>
+                        <li>Gemini 2.5 Flash Image support</li>
+                        <li>Custom dimension settings</li>
+                    </ul>
+                    <span class="tool-link">Explore Tool</span>
+                </a>
+
+                <a href="/batch-generator.html" class="tool-card">
+                    <span class="tool-icon">⚡</span>
+                    <div class="tool-title">Batch Prompt Generator</div>
+                    <div class="tool-description">
+                        Process multiple prompts automatically. Generate images one after another 
+                        with progress tracking and batch download capabilities.
+                    </div>
+                    <ul class="tool-features">
+                        <li>Batch prompt processing</li>
+                        <li>Automatic sequential generation</li>
+                        <li>Progress tracking & statistics</li>
+                        <li>Batch download all images</li>
+                    </ul>
+                    <span class="tool-link">Explore Tool</span>
+                </a>
+
+                <a href="/first-frame-changer.html" class="tool-card">
+                    <span class="tool-icon">🎬</span>
+                    <div class="tool-title">First Frame Changer</div>
+                    <div class="tool-description">
+                        Transform video first frames with style reference images. 
+                        Perfect for motion video generation workflows.
+                    </div>
+                    <ul class="tool-features">
+                        <li>Video or image first frame input</li>
+                        <li>Style reference transformation</li>
+                        <li>Selective preservation (character/outfit/setting)</li>
+                        <li>Custom prompt guidance</li>
+                    </ul>
+                    <span class="tool-link">Explore Tool</span>
+                </a>
+
+                <a href="/prompt-extractor.html" class="tool-card">
+                    <span class="tool-icon">📝</span>
+                    <div class="tool-title">Prompt Metadata Extractor</div>
+                    <div class="tool-description">
+                        Extract prompts embedded in image metadata. Perfect for batch processing 
+                        and manuscript creation from generated images.
+                    </div>
+                    <ul class="tool-features">
+                        <li>PNG text chunk extraction</li>
+                        <li>JPEG EXIF metadata reading</li>
+                        <li>Batch image processing</li>
+                        <li>Export all prompts to TXT</li>
+                    </ul>
+                    <span class="tool-link">Explore Tool</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
             <p>Banana Builder v2 • Built with AI • Deploy on Netlify</p>
-        </footer>
-    </div>
+        </div>
+    </footer>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
