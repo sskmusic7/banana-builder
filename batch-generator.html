@@ -11,16 +11,22 @@
     <script src="https://cdn.jsdelivr.net/npm/piexifjs@2.0.0/piexif.js"></script>
     <style>
         :root {
-            --primary: #667eea;
-            --primary-dark: #5568d3;
-            --secondary: #764ba2;
+            --color-primary: #141414;
+            --color-secondary: #1F1F25;
+            --color-body: #74787C;
+            --color-heading: #ffffff;
+            --color-white: #ffffff;
+            --color-black: #000000;
+            --primary: #ffffff;
+            --primary-dark: #e0e0e0;
+            --secondary: #1F1F25;
             --success: #28a745;
             --danger: #dc3545;
             --warning: #ffc107;
             --info: #17a2b8;
-            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --shadow: 0 20px 60px rgba(0,0,0,0.3);
-            --shadow-hover: 0 10px 25px rgba(102, 126, 234, 0.4);
+            --bg-gradient: linear-gradient(135deg, #141414 0%, #1F1F25 100%);
+            --shadow: 0 20px 60px rgba(0,0,0,0.5);
+            --shadow-hover: 0 10px 25px rgba(255, 255, 255, 0.1);
         }
 
         * {
@@ -30,21 +36,23 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: var(--bg-gradient);
+            font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--color-primary);
             min-height: 100vh;
             padding: 20px;
             line-height: 1.6;
+            color: var(--color-body);
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            background: white;
+            background: var(--color-secondary);
             border-radius: 20px;
             box-shadow: var(--shadow);
             padding: 40px;
             animation: fadeIn 0.5s ease-in;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         @keyframes fadeIn {
@@ -110,7 +118,7 @@
         label {
             display: block;
             font-weight: 600;
-            color: #333;
+            color: var(--color-white);
             margin-bottom: 8px;
             font-size: 0.95em;
         }
@@ -118,17 +126,19 @@
         textarea {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e9ecef;
+            border: 2px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             font-size: 14px;
             font-family: inherit;
             resize: vertical;
             transition: border-color 0.3s ease;
+            background: var(--color-secondary);
+            color: var(--color-white);
         }
 
         textarea:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: var(--color-white);
         }
 
         input[type="text"],
@@ -136,15 +146,17 @@
         select {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e9ecef;
+            border: 2px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             font-size: 14px;
             transition: border-color 0.3s ease;
+            background: var(--color-secondary);
+            color: var(--color-white);
         }
 
         input:focus, select:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: var(--color-white);
         }
 
         .btn {
@@ -504,14 +516,48 @@
             gap: 15px;
         }
 
+        .dimension-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .dimension-btn {
+            padding: 15px;
+            background: var(--color-primary);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-align: center;
+            color: var(--color-white);
+        }
+
+        .dimension-btn:hover {
+            border-color: var(--color-white);
+            background: var(--color-secondary);
+            transform: translateY(-2px);
+        }
+
+        .dimension-btn.active {
+            background: var(--color-white);
+            color: var(--color-black);
+            border-color: var(--color-white);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+        }
+
         .file-upload-area {
-            border: 3px dashed #ddd;
+            border: 3px dashed rgba(255, 255, 255, 0.3);
             border-radius: 12px;
             padding: 40px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: white;
+            background: var(--color-secondary);
+            color: var(--color-white);
         }
 
         .file-upload-area:hover {
@@ -642,15 +688,18 @@
                 <p style="font-size: 12px; color: #666; margin-top: 5px;">Get your API key from <a href="https://developers.freepik.com/" target="_blank">Freepik Developers</a></p>
             </div>
 
-            <div class="form-group dimension-group">
-                <div>
-                    <label>Width</label>
-                    <input type="number" id="width" value="1024" min="256" max="2048" step="64" />
+            <div class="form-group">
+                <label>Output Dimensions</label>
+                <div class="dimension-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 10px;">
+                    <button type="button" class="dimension-btn active" data-width="1024" data-height="1024">1024×1024<br><small>Square</small></button>
+                    <button type="button" class="dimension-btn" data-width="1024" data-height="768">1024×768<br><small>Landscape</small></button>
+                    <button type="button" class="dimension-btn" data-width="768" data-height="1024">768×1024<br><small>Portrait</small></button>
+                    <button type="button" class="dimension-btn" data-width="1536" data-height="1024">1536×1024<br><small>Wide</small></button>
+                    <button type="button" class="dimension-btn" data-width="1024" data-height="1536">1024×1536<br><small>Tall</small></button>
+                    <button type="button" class="dimension-btn" data-width="2048" data-height="2048">2048×2048<br><small>Large Square</small></button>
                 </div>
-                <div>
-                    <label>Height</label>
-                    <input type="number" id="height" value="1024" min="256" max="2048" step="64" />
-                </div>
+                <input type="hidden" id="width" value="1024" />
+                <input type="hidden" id="height" value="1024" />
             </div>
         </div>
 
@@ -1352,6 +1401,16 @@
         // ============================================
         // END KNOWLEDGE BASE SYSTEM
         // ============================================
+
+        // Dimension button handlers
+        document.querySelectorAll('.dimension-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.dimension-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                elements.width.value = btn.dataset.width;
+                elements.height.value = btn.dataset.height;
+            });
+        });
 
         elements.parseBtn.addEventListener('click', () => {
             let text = elements.promptsInput.value.trim();

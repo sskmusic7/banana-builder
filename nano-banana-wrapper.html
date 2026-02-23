@@ -1609,6 +1609,7 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
             elements.loading.classList.add('active');
 
             try {
+                const prompt = elements.prompt.value.trim();
                 const useSharedKey = document.getElementById('useSharedGeminiKey')?.checked && sharedKeysAvailable.gemini;
                 const response = await generateImage(
                     useSharedKey ? 'SHARED_KEY' : apiKey,
@@ -1633,7 +1634,6 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
                 elements.outputSection.classList.add('active');
 
                 // Add to history
-                const prompt = elements.prompt.value.trim();
                 addToHistory(imageData, prompt, state.selectedDimensions);
 
                 // Scroll to output
