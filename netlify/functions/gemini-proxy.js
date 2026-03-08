@@ -46,12 +46,12 @@ exports.handler = async (event, context) => {
     }
     
     // Clean generationConfig - remove invalid fields that Gemini API doesn't accept
+    // Explicitly exclude: width, height, aspectRatio (not valid for Gemini image API)
     const cleanGenerationConfig = generationConfig ? {
-      temperature: generationConfig.temperature,
-      topK: generationConfig.topK,
-      topP: generationConfig.topP,
-      maxOutputTokens: generationConfig.maxOutputTokens
-      // Explicitly exclude: width, height, aspectRatio (not valid for Gemini image API)
+      ...(generationConfig.temperature !== undefined && { temperature: generationConfig.temperature }),
+      ...(generationConfig.topK !== undefined && { topK: generationConfig.topK }),
+      ...(generationConfig.topP !== undefined && { topP: generationConfig.topP }),
+      ...(generationConfig.maxOutputTokens !== undefined && { maxOutputTokens: generationConfig.maxOutputTokens })
     } : {
       temperature: 1,
       topK: 40,
