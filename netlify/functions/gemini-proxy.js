@@ -45,6 +45,20 @@ exports.handler = async (event, context) => {
       };
     }
     
+    // Clean generationConfig - remove invalid fields that Gemini API doesn't accept
+    const cleanGenerationConfig = generationConfig ? {
+      temperature: generationConfig.temperature,
+      topK: generationConfig.topK,
+      topP: generationConfig.topP,
+      maxOutputTokens: generationConfig.maxOutputTokens
+      // Explicitly exclude: width, height, aspectRatio (not valid for Gemini image API)
+    } : {
+      temperature: 1,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 8192
+    };
+    
     // Build the Gemini API URL
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     
@@ -56,12 +70,7 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({
         contents: contents,
-        generationConfig: generationConfig || {
-          temperature: 1,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192
-        }
+        generationConfig: cleanGenerationConfig
       })
     });
     
