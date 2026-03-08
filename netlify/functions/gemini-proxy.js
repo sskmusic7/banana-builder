@@ -27,7 +27,7 @@ exports.handler = async (event, context) => {
 
   try {
     const requestData = JSON.parse(event.body);
-    const { model, contents, generationConfig } = requestData;
+    const { model, contents, generationConfig, systemInstruction } = requestData;
     
     // Get API key from environment variable
     const apiKey = process.env.GEMINI_API_KEY;
@@ -62,16 +62,24 @@ exports.handler = async (event, context) => {
     // Build the Gemini API URL
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     
+    // Build request body with optional systemInstruction
+    const requestBody = {
+      contents: contents,
+      generationConfig: cleanGenerationConfig
+    };
+    
+    // Add systemInstruction if provided (used by Drip Extractor)
+    if (systemInstruction) {
+      requestBody.systemInstruction = systemInstruction;
+    }
+    
     // Make the API request
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        contents: contents,
-        generationConfig: cleanGenerationConfig
-      })
+      body: JSON.stringify(requestBody)
     });
     
     const data = await response.text();
