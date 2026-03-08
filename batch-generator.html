@@ -2099,7 +2099,13 @@ STRICT NEGATIVES (AVOID):
                 }
             };
             
-            console.log('Generating with dimensions:', width, 'x', height);
+            console.log('Generating with:', {
+                model: model,
+                dimensions: `${width}x${height}`,
+                useSharedKey: useSharedKey,
+                hasApiKey: !!apiKey && apiKey !== 'SHARED_KEY',
+                hasImages: uploadedImages && uploadedImages.length > 0
+            });
 
             let response;
             if (useSharedKey) {
@@ -2134,7 +2140,13 @@ STRICT NEGATIVES (AVOID):
                 } catch (e) {
                     errorData = { error: { message: errorText } };
                 }
-                console.error('API Error:', errorData);
+                console.error('API Error Details:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    model: model,
+                    useSharedKey: useSharedKey,
+                    error: errorData
+                });
                 throw new Error(errorData.error?.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
