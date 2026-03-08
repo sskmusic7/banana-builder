@@ -2029,12 +2029,14 @@ STRICT NEGATIVES (AVOID):
         async function generateImage(apiKey, prompt, width, height, uploadedImages = []) {
             const model = elements.modelSelect.value;
             
-            // Check if using shared API key (apiKey can be empty/placeholder in this case)
-            const useSharedKey = document.getElementById('useSharedGeminiKey')?.checked && sharedKeysAvailable.gemini;
+            // Determine if using shared API key based on the apiKey parameter
+            // If apiKey is 'SHARED_KEY', we're using the shared key via proxy
+            const useSharedKey = apiKey === 'SHARED_KEY';
+            
             if (useSharedKey) {
                 console.log('Using shared API key via proxy');
-                // Use placeholder - actual key is in Netlify env vars
-                apiKey = 'SHARED_KEY';
+            } else {
+                console.log('Using direct API call with user API key');
             }
             
             // Handle Seedream 4 API (async task-based)
