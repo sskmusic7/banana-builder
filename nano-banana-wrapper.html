@@ -770,9 +770,9 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
             <div class="form-group">
                 <label for="modelSelect">Choose Gemini Model</label>
                 <select id="modelSelect" class="model-select">
-                    <option value="gemini-2.5-flash-image" selected>Gemini 2.5 Flash Image (Recommended - Stable)</option>
-                    <option value="gemini-2.5-flash-preview-image">Gemini 2.5 Flash Preview Image (Preview)</option>
-                    <option value="gemini-2.0-flash-exp-image-generation">Gemini 2.0 Flash Exp Image (Experimental)</option>
+                    <option value="gemini-3.1-flash-image-preview" selected>Gemini 3.1 Flash Image (Nano Banana 2 - Recommended)</option>
+                    <option value="gemini-3-pro-image-preview">Gemini 3 Pro Image (Nano Banana Pro)</option>
+                    <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image (Nano Banana Original)</option>
                     <option value="custom">Custom Model (Enter below)</option>
                 </select>
                 <div id="customModelContainer" style="display: none; margin-top: 10px;">
@@ -780,7 +780,7 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
                     <input type="text" id="customModelInput" placeholder="e.g., gemini-3.0-pro-image" style="margin-top: 5px;" />
                 </div>
                 <p style="margin-top: 8px; color: #666; font-size: 0.9em;">
-                    ⚠️ <strong>Note:</strong> Gemini 3.0 image generation models are not yet available via the API. The models listed above are the currently available options. Check <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener noreferrer">official documentation</a> for updates on new model releases.
+                    ℹ️ <strong>Note:</strong> Gemini 3.1 Flash Image (Nano Banana 2) is the latest and recommended model for image generation. Check <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener noreferrer">official documentation</a> for updates on new model releases.
                 </p>
             </div>
         </div>
@@ -949,7 +949,7 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
             uploadedImageBase64: null,
             uploadedImageMimeType: null,
             apiKeyVisible: false,
-            selectedModel: 'gemini-2.5-flash-image',
+            selectedModel: 'gemini-3.1-flash-image-preview',
             history: []
         };
 
@@ -1685,7 +1685,7 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
 
         async function generateImage(apiKey, prompt, imageBase64, imageMimeType, dimensions, useSharedKey = false) {
             // Use the selected model from the UI
-            let modelName = state.selectedModel || 'gemini-2.5-flash-image';
+            let modelName = state.selectedModel || 'gemini-3.1-flash-image-preview';
             
             // If custom model is selected but empty, use default
             if (elements.modelSelect.value === 'custom' && (!modelName || modelName.trim() === '')) {
@@ -1694,7 +1694,7 @@ Or JSON: {&quot;style&quot;: &quot;cyberpunk&quot;, &quot;elements&quot;: [&quot
             
             // Ensure we have a valid model name
             if (!modelName || modelName === 'custom') {
-                modelName = 'gemini-2.5-flash-image';
+                modelName = 'gemini-3.1-flash-image-preview';
             }
             
             console.log(`Using selected model: ${modelName}`);
@@ -1790,7 +1790,7 @@ STRICT NEGATIVES (AVOID):
             if (useSharedKey) {
                 // Extract model name from URL
                 const modelMatch = url.match(/models\/([^:]+)/);
-                const model = modelMatch ? modelMatch[1] : 'gemini-2.5-flash-image';
+                const model = modelMatch ? modelMatch[1] : 'gemini-3.1-flash-image-preview';
                 
                 fetchUrl = '/.netlify/functions/gemini-proxy';
                 fetchOptions = {
